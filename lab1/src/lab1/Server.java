@@ -2,8 +2,6 @@ package lab1;
 
 import java.net.*;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Set;
 import java.io.*;
 
 /**
@@ -58,7 +56,5 @@ public class Server {
 			DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, IPAddress, receivePacket.getPort());
 			serverSocket.send(sendPacket);
 		}
-
-		System.out.println("Server Stopped!");
 	}
 }
