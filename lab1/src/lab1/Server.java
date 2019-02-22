@@ -2,7 +2,8 @@ package lab1;
 
 import java.net.*;
 import java.util.HashMap;
-import java.io.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Class Server
@@ -32,8 +33,12 @@ public class Server {
 			System.out.println("Received packet: " + sentence);
 			String[] received = sentence.split(" ");
 			
-			if(received[0].compareTo("register") == 0) {
-				if(!plateNumbers.containsKey(received[1])) {
+			if(received.length == 0)
+			{
+				sendData = "-2".getBytes();
+			}
+			else if(received[0].compareTo("register") == 0) {
+				if(validatePlateNumber(received[1]) && !plateNumbers.containsKey(received[1])) {
 					plateNumbers.put(received[1],received[2]);
 					sendData = String.valueOf(plateNumbers.size()).getBytes();
 				}
@@ -42,13 +47,24 @@ public class Server {
 				}
 			}
 			else if(received[0].compareTo("lookup") == 0) {
-				String owner = plateNumbers.get(received[1]);
-				if(owner != null) {
-					sendData = owner.getBytes();
+				if(validatePlateNumber(received[1]))
+				{
+					String owner = plateNumbers.get(received[1]);
+					if(owner != null) {
+						sendData = owner.getBytes();
+					}
+					else {
+						sendData = "NOT_FOUND".getBytes();
+					}	
 				}
-				else {
+				else 
+				{
 					sendData = "NOT_FOUND".getBytes();
 				}
+			}
+			else
+			{
+				sendData = "-2".getBytes();
 			}
 			
 			InetAddress IPAddress = receivePacket.getAddress();
@@ -56,5 +72,13 @@ public class Server {
 			DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, IPAddress, receivePacket.getPort());
 			serverSocket.send(sendPacket);
 		}
+	}
+
+	private static boolean validatePlateNumber(String platen)
+	{
+		Pattern pattern = Pattern.compile("(\\w\\w-){2}\\w{2}");
+		Matcher matcher = pattern.matcher(platen);
+
+		return matcher.matches();
 	}
 }
