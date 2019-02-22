@@ -4,10 +4,11 @@ import java.net.*;
 import java.io.*;
 
 /**
+ * Compile as javac *.java
  * Class Client
- * Usage: javac lab1/client <host_name> <port_number> <oper> <opnd>*
- *      Example: javac lab1/client localhost 9876 "register 87-UI-64"
- *      Example: javac lab1/client localhost 9876 "lookup 87-UI-64"
+ * Usage: java lab1/Client <host_name> <port_number> <oper> <opnd>*
+ *      Example: java lab1/Client localhost 9876 register "87-UI-64 Andre"
+ *      Example: java lab1/Client localhost 9876 lookup "87-UI-64"
  * 
  * Application: Client-server application to manage a small database of license plates.
  * 				Server must execute in an infinite loop waiting for client requests, processing, and reply to them.
@@ -18,6 +19,12 @@ import java.io.*;
 public class Client {
    
     public static void main(String args[]) throws Exception {
+        
+        if(args.length != 4)
+		{
+			System.out.println("Wrong number of arguments.\nUsage: java lab1/Client <host_name> <port_number> <oper> <opnd>*");
+			System.exit(-1);
+        }
         
         String hostName = args[0];
         Integer portNumber = Integer.parseInt(args[1]);

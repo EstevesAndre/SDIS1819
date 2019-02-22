@@ -6,9 +6,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
+ * Compile as javac *.java
  * Class Server
- * Usage: javac lab1/server <host_name>
- *      Example: javac lab1/server 9876
+ * Usage: java lab1/server <port_number>
+ *      Example: java lab1/Server 9876
  * 
  * Application: Client-server application to manage a small database of license plates.
  * 				Server must execute in an infinite loop waiting for client requests, processing, and reply to them.
@@ -18,6 +19,12 @@ import java.util.regex.Pattern;
 public class Server {
 	public static void main(String args[]) throws Exception {
 	   
+		if(args.length != 1)
+		{
+			System.out.println("Wrong number of arguments.\nUsage: java lab1/Server <port_number>");
+			System.exit(-1);
+		}
+		
 		DatagramSocket serverSocket = new DatagramSocket(Integer.parseInt(args[0]));
 		
 		System.out.println("Server Running...");
