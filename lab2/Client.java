@@ -16,8 +16,61 @@ import java.io.*;
  *              Also, the system should allow to visualize the owner of a given plate number (if exists).
  * Submits a request to the server, Client waits a reply to the request, prints the reply, and then terminates.
  */
-public class Client {
+public class Client{
+    InetAddress multicastAddress;
+    InetAddress registryAddress;
+
+    Integer multicastPort;
+    Integer registryPort;
+
+    MulticastSocket multicastSocket;
+    DatagramSocket clientSocket;
    
+    public Client(String multicastHostName, String mcastPort) throws Exception {
+        this.multicastAddress = InetAddress.getByName(multicastHostName);
+        this.multicastPort = Integer.parseInt(mcastPort);
+
+        // Join multicast group
+        this.multicastSocket = new MulticastSocket(this.multicastPort);
+        this.multicastSocket.joinGroup(this.multicastAddress);
+    }
+
+    public void receiveAdvertisement() throws Exception {
+        // Receive advertisement
+        byte[] advertisementData = new byte[512];
+        DatagramPacket advertisementPacket = new DatagramPacket(advertisementData, advertisementData.length);
+        this.multicastSocket.receive(advertisementPacket);
+
+        // Parse server's advertisement
+        String[] registryInfo = new String(advertisementPacket.getData(), 0, advertisementPacket.getLength()).split(" ");
+        System.out.println("IP registry: " + registryInfo[0] + "\nRegistry port: " + registryInfo[1]);
+        this.registryAddress = InetAddress.getByName(registryInfo[0]);
+        this.registryPort = Integer.parseInt(registryInfo[1]);
+
+        // Create a DatagramSocket to comunicate with Registry
+        this.clientSocket = new DatagramSocket();
+
+    }
+
+    public void sendRequest(String oper, String opnd) throws Exception {
+        String data = oper + " " + opnd;
+        System.out.println("My request: " + data);
+
+        byte[] requestData = data.getBytes();
+        DatagramPacket requestPacket = new DatagramPacket(requestData, requestData.length, this.registryAddress, this.registryPort);
+
+        this.clientSocket.send(requestPacket);
+
+    }
+
+    public void receiveReply() throws Exception {
+        DatagramPacket replyPacket = new DatagramPacket(new byte[512], 512);
+        
+        this.clientSocket.receive(replyPacket);
+        String reply = new String(replyPacket.getData(), 0, replyPacket.getLength());
+        System.out.println("Reply from server: " + reply);
+    }
+
     public static void main(String args[]) throws Exception {
         
         if(args.length != 4)
@@ -27,47 +80,14 @@ public class Client {
         }
         
 		System.setProperty("java.net.preferIPv4Stack", "true");
-        Integer portNumber = Integer.parseInt(args[1]);
-
-        // Join multicast group
-        InetAddress IPAddress = InetAddress.getByName(args[0]);
-        MulticastSocket multiSocket = new MulticastSocket(portNumber);
-        multiSocket.joinGroup(IPAddress);
-
-        // Receive advertisement
-        byte[] receiveDataAdvertisement = new byte[512];
-        DatagramPacket receiveAdvertisement = new DatagramPacket(receiveDataAdvertisement, receiveDataAdvertisement.length);
-        multiSocket.receive(receiveAdvertisement);
-
-        // Parse server's advertisement
-        String[] registryInfo = new String(receiveAdvertisement.getData(), 0, receiveAdvertisement.getLength()).split(" ");
-        System.out.println("IP registry: " + registryInfo[0] + "\nRegistry port: " + registryInfo[1]);
-        InetAddress registryAddress = InetAddress.getByName(registryInfo[0]);
-        Integer registryPort = Integer.parseInt(registryInfo[1]);
-
-        // Received advertisement
-        // Now creates a DatagramSocket to comunicate with Registry
-        DatagramSocket clientSocket = new DatagramSocket();
         
-        byte[] sendData = new byte[512];
-        byte[] receiveData = new byte[512];
-        String oper = args[2];
-        String opnd = args[3];
+        Client client = new Client(args[0], args[1]);
 
-        String data = oper + " " + opnd;
-        System.out.println(data);
-
-        sendData = data.getBytes();
-
-        DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, registryAddress, registryPort);
-        clientSocket.send(sendPacket);
-        DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
+        client.receiveAdvertisement();
+        client.sendRequest(args[2], args[3]);
+        client.receiveReply();
         
-        clientSocket.receive(receivePacket);
-        String response = new String(receivePacket.getData(), 0, receivePacket.getLength());
-        System.out.println("Received from server: " + response);
-        
-        clientSocket.close();
-        multiSocket.close();
+        client.clientSocket.close();
+        client.multicastSocket.close();
     }
 }
