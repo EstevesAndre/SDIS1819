@@ -8,8 +8,8 @@ import java.util.regex.Pattern;
 /**
  * Compile as javac *.java
  * Class Server
- * Usage: java lab1/server <port_number>
- *      Example: java lab1/Server 9876
+ * Usage: java lab2/Server <multicast_address> <multicast_port> <registry_address> <registry_port>
+ *      Example: java lab2/Server 230.0.0.0 9876 localhost 4745
  * 
  * Application: Client-server application to manage a small database of license plates.
  * 				Server must execute in an infinite loop waiting for client requests, processing, and reply to them.
@@ -32,17 +32,17 @@ public class Server {
 
 		byte[] sendAdvertisement = new byte[512];
 		// "IP"+" "+"Port"
-		sendAdvertisement = (InetAddress.getByName(args[2]) + " " + args[3]).getBytes();
+		sendAdvertisement = (InetAddress.getByName(args[2]).getHostName() + " " + args[3]).getBytes();
 
 		while(true)
 		{	
 			DatagramPacket advertisement = new DatagramPacket(sendAdvertisement, sendAdvertisement.length, IPAddress, portNumber);
 			multiSocket.send(advertisement);
 
-			break;
+			//break;
 		}
 
-		multiSocket.close();
+		//multiSocket.close();
         
 		/*System.out.println("Server Running...");
 		byte[] receiveData = new byte[512];
