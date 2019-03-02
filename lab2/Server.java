@@ -59,21 +59,63 @@ public class Server {
 		System.out.println("Received packet: " + received);
 
 		String[] receivedSplited = received.split(" ");
-		switch (receivedSplited[0]) {
+		switch (receivedSplited[0].trim()) {
             case "REGISTER":
-                //sendReply(registerUser(groups[1], received.substring(OWNER_NAME_POS)));
+                sendReply(registerUser(receivedSplited[1].trim(), receivedSplited[2].trim()));
                 break;
             case "LOOKUP":
-                //sendReply(getOwner(groups[1]));
+                sendReply(getOwner(receivedSplited[1].trim()));
                 break;
             default:
                 System.err.println("Server Error: Received unknown request.");
         }
-
-		byte[] sendData = new byte[MAX_REQUEST_SIZE];
 	}
 
-	private static boolean validatePlateNumber(String platen) throws Exception {
+	private String getOwner(String plateNumber) throws Exception {
+		String replyMessage;
+
+
+		if(validatePlateNumber(plateNumber))
+		{
+			String owner = plateNumbers.get(plateNumber);
+			if(owner != null) {
+				replyMessage = owner + " ";
+			}
+			else {
+				replyMessage = "-1 ";
+			}	
+		}
+		else 
+		{
+			replyMessage = "-1 ";
+		}
+
+		return replyMessage + "lookup " + plateNumber;
+	}
+
+	private String registerUser(String plateNumber, String ownerName) throws Exception {
+		String replyMessage;
+		
+		if(validatePlateNumber(plateNumber) && !plateNumbers.containsKey(plateNumber)) {
+			plateNumbers.put(plateNumber,ownerName);
+			replyMessage = Integer.toString(plateNumbers.size()) + " ";
+		}
+		else {
+			replyMessage = "-1 ";
+		}
+
+		return replyMessage + "register " + plateNumber + "onwer " + ownerName;
+	}
+
+	private void sendReply(String replyMessage) throws Exception {
+		byte[] reply = replyMessage.getBytes();
+
+		System.out.println("Sending reply: " + replyMessage);
+		DatagramPacket sendPacket = new DatagramPacket(reply, reply.length, this.IPAddress, this.portNumber);
+		this.multicastSocket.send(sendPacket);
+	}
+
+	private boolean validatePlateNumber(String platen) throws Exception {
 		Pattern pattern = Pattern.compile("(\\w\\w-){2}\\w{2}");
 		Matcher matcher = pattern.matcher(platen);
 
@@ -81,8 +123,6 @@ public class Server {
 	}
 
 	private void sendAdvertisement() throws Exception {
-		// sends advertisement
-		// "IP"+" "+"Port"
 		byte[] advertisementData = new byte[MAX_REQUEST_SIZE];
 		advertisementData = (this.IPAddress.getHostName() + " " + this.servicePort).getBytes();	
 		
@@ -90,6 +130,13 @@ public class Server {
 		this.multicastSocket.send(advertisementPacket);
 
 		System.out.println("Advertisement sent!");
+	}
+
+	private void update() throws Exception {
+		sendAdvertisement();
+		
+        //Receive messages
+        while(true) { receiveRequest(); }
 	}
 
 	public static void main(String args[]) throws Exception {
@@ -102,61 +149,7 @@ public class Server {
 		
 		Server server = new Server(args[0], args[1], args[2]);
 		
-		server.sendAdvertisement();
-
+		server.update();
 		server.multicastSocket.close();
-        
-		/*
-		byte[] receiveData = new byte[512];
-		byte[] sendData = new byte[512];
-		
-		HashMap<String, String> plateNumbers = new HashMap<String, String>();
-	   
-	   	while(true) { 
-			DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
-			serverSocket.receive(receivePacket);
-			String sentence = new String(receivePacket.getData(), 0, receivePacket.getLength());
-			System.out.println("Received packet: " + sentence);
-			String[] received = sentence.split(" ");
-			
-			if(received.length == 0)
-			{
-				sendData = "-2".getBytes();
-			}
-			else if(received[0].compareTo("register") == 0) {
-				if(validatePlateNumber(received[1]) && !plateNumbers.containsKey(received[1])) {
-					plateNumbers.put(received[1],received[2]);
-					sendData = String.valueOf(plateNumbers.size()).getBytes();
-				}
-				else {
-					sendData = "-1".getBytes();
-				}
-			}
-			else if(received[0].compareTo("lookup") == 0) {
-				if(validatePlateNumber(received[1]))
-				{
-					String owner = plateNumbers.get(received[1]);
-					if(owner != null) {
-						sendData = owner.getBytes();
-					}
-					else {
-						sendData = "NOT_FOUND".getBytes();
-					}	
-				}
-				else 
-				{
-					sendData = "NOT_FOUND".getBytes();
-				}
-			}
-			else
-			{
-				sendData = "-2".getBytes();
-			}
-			
-			InetAddress IPAddress = receivePacket.getAddress();
-			System.out.println("Server sending back: " + new String(sendData));
-			DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, IPAddress, receivePacket.getPort());
-			serverSocket.send(sendPacket);
-		}*/
 	}
 }
