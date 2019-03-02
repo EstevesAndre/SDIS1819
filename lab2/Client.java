@@ -6,7 +6,7 @@ import java.io.*;
 /**
  * Compile as javac *.java
  * Class Client
- * Usage: java lab1/Client <multicast address> <multicast_port> <oper> <opnd>*
+ * Usage: java lab2/Client <mcast_addr> <mcast_port> <oper> <opnd>*
  *      Example: java lab2/Client 230.0.0.0 9876 register "87-UI-64 Andre"
  *      Example: java lab2/Client 230.0.0.0 9876 lookup "87-UI-64"
  * 
@@ -49,7 +49,6 @@ public class Client{
 
         // Create a DatagramSocket to comunicate with Registry
         this.clientSocket = new DatagramSocket();
-
     }
 
     public void sendRequest(String oper, String opnd) throws Exception {
@@ -60,7 +59,6 @@ public class Client{
         DatagramPacket requestPacket = new DatagramPacket(requestData, requestData.length, this.registryAddress, this.registryPort);
 
         this.clientSocket.send(requestPacket);
-
     }
 
     public void receiveReply() throws Exception {
@@ -75,7 +73,7 @@ public class Client{
         
         if(args.length != 4)
 		{
-			System.out.println("Wrong number of arguments.\nUsage: java lab2/Client <multicast_address> <multicast_port> <oper> <opnd>*");
+			System.out.println("Wrong number of arguments.\nUsage: java lab2/Client <mcast_addr> <mcast_port> <oper> <opnd>*");
 			System.exit(-1);
         }
         
