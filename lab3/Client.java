@@ -23,7 +23,7 @@ public class Client {
             String[] receivedSplited = args[3].split(" ");
             String response = "";
 
-            switch (args[2]) {
+            switch (args[2].toUpperCase()) {
                 case "REGISTER":
                     response = stub.registerUser(receivedSplited[0].trim(), receivedSplited[1].trim());
                     break;
