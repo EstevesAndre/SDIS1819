@@ -9,7 +9,7 @@ public class Client {
 
     public static void main(String[] args) {
 
-        String host = "RemoteInterface"; //(args.length < 1) ? null : args[0];
+        String host = "localhost"; //(args.length < 1) ? null : args[0];
 
         try {
             Registry registry = LocateRegistry.getRegistry(host);
