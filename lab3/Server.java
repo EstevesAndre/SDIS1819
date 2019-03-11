@@ -64,14 +64,21 @@ public class Server implements RemoteInterface {
 	}
         
     public static void main(String args[]) {
-        
+		
+		if(args.length != 1)
+		{
+            System.out.println("Wrong number of arguments.\nUsage: java lab3/Server <remote_object_name>");
+            //example: java lab3/Server RemoteInterface
+			System.exit(-1);
+		}
+		
         try {
             Server obj = new Server();
             RemoteInterface stub = (RemoteInterface) UnicastRemoteObject.exportObject(obj, 0);
 
             // Bind the remote object's stub in the registry
             Registry registry = LocateRegistry.getRegistry();
-            registry.bind("RemoteInterface", stub);
+            registry.bind(args[0], stub);
 
 			System.err.println("Server ready");
 			
