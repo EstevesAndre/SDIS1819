@@ -42,18 +42,13 @@ public class Server implements RemoteInterface {
 	}
 
 	public String registerUser(String plateNumber, String ownerName) {
-		String replyMessage;
 
 		if(validatePlateNumber(plateNumber) && !this.plateNumbers.containsKey(plateNumber)) {
 			this.plateNumbers.put(plateNumber,ownerName);
-			return replyMessage = Integer.toString(this.plateNumbers.size());
+			return Integer.toString(this.plateNumbers.size());
 		}
 		else
-			return replyMessage = "-1";
-	}
-
-	public String test() {
-		return "This is a test.";
+			return "-1";
 	}
 
 	private boolean validatePlateNumber(String platen) {
