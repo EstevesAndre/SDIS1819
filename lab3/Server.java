@@ -21,20 +21,23 @@ public class Server implements RemoteInterface {
 	}
 
 	public String getOwner(String plateNumber) {
+		System.out.println("Looking up plate number...");
+
 		String replyMessage;
 
-		if(validatePlateNumber(plateNumber))
-		{
+		if(validatePlateNumber(plateNumber)) {
 			String owner = this.plateNumbers.get(plateNumber);
 			if(owner != null) {
+				System.out.println("Done!");
 				replyMessage = owner;
 			}
 			else {
+				System.out.println("Couldn't find owner.");
 				replyMessage = "NOT_FOUND";
 			}	
 		}
-		else 
-		{
+		else {
+			System.out.println("Your plate number is not valid.");
 			replyMessage = "NOT_FOUND";
 		}
 
@@ -43,12 +46,17 @@ public class Server implements RemoteInterface {
 
 	public String registerUser(String plateNumber, String ownerName) {
 
+		System.out.println("Registering plate number...");
+
 		if(validatePlateNumber(plateNumber) && !this.plateNumbers.containsKey(plateNumber)) {
 			this.plateNumbers.put(plateNumber,ownerName);
+			System.out.println("Done!");
 			return Integer.toString(this.plateNumbers.size());
 		}
-		else
+		else {
+			System.out.println("Your plate number is either invalid or already registered.");
 			return "-1";
+		}
 	}
 
 	private boolean validatePlateNumber(String platen) {
