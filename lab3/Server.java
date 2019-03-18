@@ -77,7 +77,7 @@ public class Server implements RemoteInterface {
 		
         try {
             Server obj = new Server();
-            RemoteInterface stub = (RemoteInterface) UnicastRemoteObject.exportObject(obj, 0);
+            //RemoteInterface stub = (RemoteInterface) UnicastRemoteObject.exportObject(obj, 0);
 
             // Bind the remote object's stub in the registry
             Registry registry = LocateRegistry.getRegistry();
