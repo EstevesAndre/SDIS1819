@@ -8,17 +8,20 @@ import java.rmi.server.UnicastRemoteObject;
 import java.net.*;
 import java.io.*;
 
-public class Peer implements ClientInterface{
+public class Peer {
 
     private short peerID;
     private float version;
     private MulticastSocket MCSocket;
     private MulticastSocket MDBSocket;
+    private MulticastSocket MDRSocket;
 
     private InetAddress MCAddress;
     private int MCPortNumber;
     private InetAddress MDBAddress;
     private int MDBPortNumber;
+    private InetAddress MDRAddress;
+    private int MDRPortNumber;
     
     public Peer(String version, String serverID) {
         this.peerID = Short.parseShort(serverID);
@@ -26,7 +29,7 @@ public class Peer implements ClientInterface{
         System.out.println(version);
     }
 
-    public void createMC(String multicastHostName, String mcastPort) throws Exception {
+    public void joinMC(String multicastHostName, String mcastPort) throws Exception {
 
         this.MCAddress = InetAddress.getByName(multicastHostName);
         this.MCPortNumber = Integer.parseInt(mcastPort);
@@ -36,7 +39,7 @@ public class Peer implements ClientInterface{
         this.MCSocket.joinGroup(this.MCAddress);
     }
 
-    public void createMDB(String multicastHostName, String mcastPort) throws Exception {
+    public void joinMDB(String multicastHostName, String mcastPort) throws Exception {
 
         this.MDBAddress = InetAddress.getByName(multicastHostName);
         this.MDBPortNumber = Integer.parseInt(mcastPort);
@@ -46,21 +49,17 @@ public class Peer implements ClientInterface{
         this.MDBSocket.joinGroup(this.MDBAddress);
     }
 
-    public void test() throws Exception {
-        String x = "aaa asd    xsd";
+    public void joinMDR(String multicastHostName, String mcastPort) throws Exception {
 
-        String[] s = x.split(" ");
+        this.MDRAddress = InetAddress.getByName(multicastHostName);
+        this.MDRPortNumber = Integer.parseInt(mcastPort);
 
-        for(String var : s) {
-            if(!var.equals(""))
-            {
-
-            }
-        }
+        // Join multicast group
+        this.MDRSocket = new MulticastSocket(this.MDBPortNumber);
+        this.MDRSocket.joinGroup(this.MDBAddress);
     }
 
-    public String createHeader(String messageType, String fileID, String chunkNumber, String replicationDegree)
-    {
+    public String createHeader(String messageType, String fileID, String chunkNumber, String replicationDegree){
         return messageType + " " + this.version + " " + this.peerID + " " + fileID + " " + chunkNumber + " " + replicationDegree + "\r\n \r\n";
     }
 
@@ -72,7 +71,7 @@ public class Peer implements ClientInterface{
     }
 
     public static void main(String[] args) throws Exception {
-        // endereço e porta de cada canal
+        
         if(args.length != 10)
 		{
             System.out.println("Wrong number of arguments.\nUsage: java project/Peer <type> <version> <server_ID> <server_access_point> <MC_address> <MC_port> <MDB_address> <MDB_port> <MDR_address> <MDR_port>");
@@ -86,19 +85,14 @@ public class Peer implements ClientInterface{
     
         Peer peer = new Peer(args[1], args[2]);
 
-        peer.createMC(args[4], args[5]);
-        peer.createMDB(args[6], args[7]);
-
-        peer.test();
+        peer.joinMC(args[4], args[5]);
+        peer.joinMDB(args[6], args[7]);
+        peer.joinMDR(args[8], args[9]);
 
         if(args[0].equals("1"))
         {
             peer.sendPutChunk();
             System.out.println("Sent");
-        }
-        else
-        {
-
         }
         
 		byte[] receiveData = new byte[256];
