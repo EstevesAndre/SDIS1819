@@ -23,6 +23,8 @@ public class Peer {
     private InetAddress MDRAddress;
     private int MDRPortNumber;
     
+    private String filename;
+
     public Peer(String version, String serverID) {
         this.peerID = Short.parseShort(serverID);
         this.version = Float.parseFloat(version);
@@ -70,6 +72,31 @@ public class Peer {
 		this.MDBSocket.send(sendPacket);
     }
 
+    public void splitFile(File file) throws IOException {
+        int partCounter = 1;//I like to name parts from 001, 002, 003, ...
+        //you can change it to 0 if you want 000, 001, ...
+
+        int sizeOfFiles = 1000 * 64;// 64KB
+        byte[] buffer = new byte[sizeOfFiles];
+
+        String fileName = file.getName();
+
+        //try-with-resources to ensure closing stream
+        try (FileInputStream fis = new FileInputStream(file);
+        BufferedInputStream bis = new BufferedInputStream(fis)) {
+
+            int bytesAmount = 0;
+            while ((bytesAmount = bis.read(buffer)) > 0) {
+                //write each chunk of data into separate file with different number in name
+                String filePartName = String.format("%s.%03d", fileName, partCounter++);
+                File newFile = new File(file.getParent(), filePartName);
+                try (FileOutputStream out = new FileOutputStream(newFile)) {
+                    out.write(buffer, 0, bytesAmount);
+                }
+            }
+        }
+    }
+
     public static void main(String[] args) throws Exception {
         
         if(args.length != 10)
@@ -100,6 +127,11 @@ public class Peer {
         peer.MDBSocket.receive(packet);
 		String received = new String(packet.getData(), 0, packet.getLength());
 		System.out.println("Received packet: " + received);
+
+
+        File file = new File("project/example_file.txt");
+
+        peer.splitFile(file);
 
     }
 }
