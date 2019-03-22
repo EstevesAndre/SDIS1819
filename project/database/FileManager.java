@@ -1,4 +1,4 @@
-package project;
+package project.database;
 
 import java.net.*;
 import java.io.*;
