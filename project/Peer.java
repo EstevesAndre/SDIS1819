@@ -77,12 +77,12 @@ public class Peer {
             System.out.println("Wrong number of arguments.\nUsage: java project/Peer <type> <version> <server_ID> <server_access_point> <MC_address> <MC_port> <MDB_address> <MDB_port> <MDR_address> <MDR_port>");
             // example: java project/Peer 1 1.0 1234 12 230.0.0.0 9876 230.0.0.1 9877 230.0.0.2 9878
             // example: java project/Peer 2 1.0 1234 12 230.0.0.0 9876 230.0.0.1 9877 230.0.0.2 9878
-            
+            // 1 envia packet
 			System.exit(-1);
         }
 
         System.setProperty("java.net.preferIPv4Stack", "true");
-    
+
         Peer peer = new Peer(args[1], args[2]);
 
         peer.joinMC(args[4], args[5]);
