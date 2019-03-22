@@ -1,5 +1,6 @@
 package project.service;
 
+import project.rmi.*;
 import java.rmi.registry.Registry;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.RemoteException;
@@ -7,8 +8,9 @@ import java.rmi.server.UnicastRemoteObject;
 
 import java.net.*;
 import java.io.*;
+import java.util.ArrayList;
 
-public class Peer {
+public class Peer implements RemoteInterface {
 
     private short peerID;
     private float version;
@@ -133,5 +135,30 @@ public class Peer {
 
         peer.splitFile(file);
 
+    }
+
+    @Override
+    public void backupOperation(ArrayList<String> info) {
+
+    }
+
+    @Override
+    public void restoreOperation(ArrayList<String> info) {
+
+    }
+    
+    @Override
+    public void deleteOperation(ArrayList<String> info) {
+        
+    }
+    
+    @Override
+    public void reclaimOperation(ArrayList<String> info) {
+        
+    }
+
+    @Override
+    public void stateOperation(ArrayList<String> info) {
+        
     }
 }
