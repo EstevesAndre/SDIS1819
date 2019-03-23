@@ -37,8 +37,8 @@ public class TestApp {
         }
     }
 
-    // Usage: java service/TestApp <peer_ap> <sub_protocol> <opnd_1> <opnd_2> 
-    // Example: java service/TestApp "localhost RemoteInterface" BACKUP testFile.txt 2
+    // Usage: java project/service/TestApp <peer_ap> <sub_protocol> <opnd_1> <opnd_2> 
+    // Example: java project/service/TestApp "localhost RemoteInterface" BACKUP testFile.txt 2
     public static void main(String args[]) throws Exception {
 
         if(args.length != 2 && args.length != 3 && args.length != 4)
