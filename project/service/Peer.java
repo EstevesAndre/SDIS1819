@@ -1,19 +1,21 @@
 package project.service;
 
-import project.rmi.*;
+import java.io.*;
+import java.net.*;
+import java.util.ArrayList;
+
+import project.rmi.RemoteInterface;
+
 import java.rmi.registry.Registry;
 import java.rmi.registry.LocateRegistry;
-import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 
-import java.net.*;
-import java.io.*;
-import java.util.ArrayList;
 
 public class Peer implements RemoteInterface {
 
     private short peerID;
     private float version;
+    private String accessPoint;
     private MulticastSocket MCSocket;
     private MulticastSocket MDBSocket;
     private MulticastSocket MDRSocket;
@@ -27,13 +29,44 @@ public class Peer implements RemoteInterface {
     
     private String filename;
 
-    public Peer(String version, String serverID) {
+    public Peer(String version, String serverID, String accessPoint, String MCAddr, String MDBAddr, String MDRAddr) throws Exception {
+        
+        System.setProperty("java.net.preferIPv4Stack", "true");
+
         this.peerID = Short.parseShort(serverID);
         this.version = Float.parseFloat(version);
-        System.out.println(version);
+        this.accessPoint = accessPoint;
+
+        this.joinMC(MCAddr);
+        this.joinMDB(MDBAddr);
+        this.joinMDR(MDRAddr);
+
+        this.joinRMI();
     }
 
-    public void joinMC(String multicastHostName, String mcastPort) throws Exception {
+    public void joinRMI() throws Exception {
+
+        try {
+            RemoteInterface stub = (RemoteInterface) UnicastRemoteObject.exportObject(this, 0);
+
+            // Bind the remote object's stub in the registry
+            Registry registry = LocateRegistry.getRegistry();
+            registry.bind(this.accessPoint, stub);
+
+			System.out.println("Server ready\n");
+        } 
+        catch (Exception e) {
+            System.err.println("ERROR --> " + this.getClass() + ": Failed to initiate RMI\n" + 
+                                "      --> Exception: " + e.toString());
+            //e.printStackTrace();
+            System.exit(-2);
+        }
+    }
+
+    public void joinMC(String MCAddr) throws Exception {
+
+        String multicastHostName = MCAddr.split(" ")[0];
+        String mcastPort = MCAddr.split(" ")[1];
 
         this.MCAddress = InetAddress.getByName(multicastHostName);
         this.MCPortNumber = Integer.parseInt(mcastPort);
@@ -43,7 +76,10 @@ public class Peer implements RemoteInterface {
         this.MCSocket.joinGroup(this.MCAddress);
     }
 
-    public void joinMDB(String multicastHostName, String mcastPort) throws Exception {
+    public void joinMDB(String MDBAddr) throws Exception {
+
+        String multicastHostName = MDBAddr.split(" ")[0];
+        String mcastPort = MDBAddr.split(" ")[1];
 
         this.MDBAddress = InetAddress.getByName(multicastHostName);
         this.MDBPortNumber = Integer.parseInt(mcastPort);
@@ -53,7 +89,10 @@ public class Peer implements RemoteInterface {
         this.MDBSocket.joinGroup(this.MDBAddress);
     }
 
-    public void joinMDR(String multicastHostName, String mcastPort) throws Exception {
+    public void joinMDR(String MDRAddr) throws Exception {
+
+        String multicastHostName = MDRAddr.split(" ")[0];
+        String mcastPort = MDRAddr.split(" ")[1];
 
         this.MDRAddress = InetAddress.getByName(multicastHostName);
         this.MDRPortNumber = Integer.parseInt(mcastPort);
@@ -101,24 +140,20 @@ public class Peer implements RemoteInterface {
 
     public static void main(String[] args) throws Exception {
         
-        if(args.length != 10)
+        // example: java project/service/Peer 1.0 1234 RemoteInterface "230.0.0.0 9876" "230.0.0.1 9877" "230.0.0.2 9878"
+        // 1 envia packet
+
+        if(args.length != 6)
 		{
-            System.out.println("Wrong number of arguments.\nUsage: java project/Peer <type> <version> <server_ID> <server_access_point> <MC_address> <MC_port> <MDB_address> <MDB_port> <MDR_address> <MDR_port>");
-            // example: java project/Peer 1 1.0 1234 12 230.0.0.0 9876 230.0.0.1 9877 230.0.0.2 9878
-            // example: java project/Peer 2 1.0 1234 12 230.0.0.0 9876 230.0.0.1 9877 230.0.0.2 9878
-            // 1 envia packet
+            System.out.println("Wrong number of arguments.\nUsage: java project/Peer <version> <serverID> <accessPoint> \"<MC_address> <MC_port>\" \"<MDB_address> <MDB_port>\" \"<MDR_address> <MDR_port>\"\r\n");
+            
 			System.exit(-1);
         }
 
-        System.setProperty("java.net.preferIPv4Stack", "true");
+        Peer peer = new Peer(args[0], args[1], args[2], args[3], args[4], args[5]);
 
-        Peer peer = new Peer(args[1], args[2]);
-
-        peer.joinMC(args[4], args[5]);
-        peer.joinMDB(args[6], args[7]);
-        peer.joinMDR(args[8], args[9]);
-
-        if(args[0].equals("1"))
+        /*
+        if(args[0].equals("1")) // ja nao existe
         {
             peer.sendPutChunk();
             System.out.println("Sent");
@@ -130,16 +165,20 @@ public class Peer implements RemoteInterface {
 		String received = new String(packet.getData(), 0, packet.getLength());
 		System.out.println("Received packet: " + received);
 
-
         File file = new File("project/example_file.txt");
 
         peer.splitFile(file);
 
+        */
+        
     }
 
     @Override
     public void backupOperation(ArrayList<String> info) {
-
+        System.out.print("Received the following request: \n - BACKUP");
+        for(String i : info) {
+            System.out.print(" " + i);
+        }
     }
 
     @Override
