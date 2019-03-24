@@ -3,6 +3,8 @@ package project.service;
 import java.io.*;
 import java.net.*;
 import java.util.ArrayList;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.Executors;
 
 import project.channels.MCChannel;
 import project.channels.MDBChannel;
@@ -27,6 +29,8 @@ public class Peer implements RemoteInterface {
     private MDRChannel MDRchannel;
 
     private FileManager fileManager;
+
+    private ThreadPoolExecutor executor;
 
     public Peer(String version, String serverID, String accessPoint, String MCAddr, String MDBAddr, String MDRAddr) throws Exception {
         
@@ -75,7 +79,9 @@ public class Peer implements RemoteInterface {
         }
 
         Peer peer = new Peer(args[0], args[1], args[2], args[3], args[4], args[5]);
-        
+        peer.executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(2);
+        peer.executor.execute(peer.MDBchannel);
+        peer.executor.execute(peer.MCchannel);
     }
 
     @Override

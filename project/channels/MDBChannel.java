@@ -6,10 +6,12 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
+import java.util.concurrent.TimeUnit;
+import java.lang.Runnable;
 
 import project.database.Chunk;
 
-public class MDBChannel extends Channel{
+public class MDBChannel extends Channel implements Runnable{
     public MDBChannel(String MDBAddr, short peerId, float version) throws Exception{
         super(MDBAddr, peerId, version);
     }
@@ -36,6 +38,18 @@ public class MDBChannel extends Channel{
 
         System.out.println("RECEIVED HEADER: " + received[0]);
 
+    }
+
+    @Override
+    public void run() {
+        try {
+            while(true) {
+                System.out.println("Executing: MDB");
+                TimeUnit.SECONDS.sleep(2); 
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
     
 }
