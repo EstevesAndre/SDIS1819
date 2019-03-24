@@ -7,7 +7,7 @@ import java.util.ArrayList;
 
 public interface RemoteInterface extends Remote {
 
-    public void backupOperation(ArrayList<String> arguments) throws RemoteException;
+    public void backupOperation(ArrayList<String> arguments) throws Exception, RemoteException;
 
     public void restoreOperation(ArrayList<String> arguments) throws RemoteException;
     

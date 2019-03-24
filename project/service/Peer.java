@@ -4,6 +4,9 @@ import java.io.*;
 import java.net.*;
 import java.util.ArrayList;
 
+import project.channels.MDBChannel;
+import project.database.Chunk;
+import project.database.FileManager;
 import project.rmi.RemoteInterface;
 
 import java.rmi.registry.Registry;
@@ -17,17 +20,18 @@ public class Peer implements RemoteInterface {
     private float version;
     private String accessPoint;
     private MulticastSocket MCSocket;
-    private MulticastSocket MDBSocket;
+    //private MulticastSocket MDBSocket;
     private MulticastSocket MDRSocket;
 
     private InetAddress MCAddress;
     private int MCPortNumber;
-    private InetAddress MDBAddress;
-    private int MDBPortNumber;
+    //private InetAddress MDBAddress;
+    //private int MDBPortNumber;
     private InetAddress MDRAddress;
     private int MDRPortNumber;
-    
-    private String filename;
+
+    private MDBChannel MDBchannel;
+    private FileManager fileManager;
 
     public Peer(String version, String serverID, String accessPoint, String MCAddr, String MDBAddr, String MDRAddr) throws Exception {
         
@@ -38,8 +42,9 @@ public class Peer implements RemoteInterface {
         this.accessPoint = accessPoint;
 
         this.joinMC(MCAddr);
-        this.joinMDB(MDBAddr);
         this.joinMDR(MDRAddr);
+
+        this.MDBchannel = new MDBChannel(MDBAddr, this.peerID, this.version);
 
         this.joinRMI();
     }
@@ -53,7 +58,7 @@ public class Peer implements RemoteInterface {
             Registry registry = LocateRegistry.getRegistry();
             registry.bind(this.accessPoint, stub);
 
-			System.out.println("Server ready\n");
+			System.out.println("\nPeer ready\n");
         } 
         catch (Exception e) {
             System.err.println("ERROR --> " + this.getClass() + ": Failed to initiate RMI\n" + 
@@ -76,19 +81,6 @@ public class Peer implements RemoteInterface {
         this.MCSocket.joinGroup(this.MCAddress);
     }
 
-    public void joinMDB(String MDBAddr) throws Exception {
-
-        String multicastHostName = MDBAddr.split(" ")[0];
-        String mcastPort = MDBAddr.split(" ")[1];
-
-        this.MDBAddress = InetAddress.getByName(multicastHostName);
-        this.MDBPortNumber = Integer.parseInt(mcastPort);
-
-        // Join multicast group
-        this.MDBSocket = new MulticastSocket(this.MDBPortNumber);
-        this.MDBSocket.joinGroup(this.MDBAddress);
-    }
-
     public void joinMDR(String MDRAddr) throws Exception {
 
         String multicastHostName = MDRAddr.split(" ")[0];
@@ -98,44 +90,8 @@ public class Peer implements RemoteInterface {
         this.MDRPortNumber = Integer.parseInt(mcastPort);
 
         // Join multicast group
-        this.MDRSocket = new MulticastSocket(this.MDBPortNumber);
-        this.MDRSocket.joinGroup(this.MDBAddress);
-    }
-
-    public String createHeader(String messageType, String fileID, String chunkNumber, String replicationDegree){
-        return messageType + " " + this.version + " " + this.peerID + " " + fileID + " " + chunkNumber + " " + replicationDegree + "\r\n \r\n";
-    }
-
-    public void sendPutChunk() throws Exception {
-        byte[] header = createHeader("test", "1", "1", "2").getBytes();
-        
-		DatagramPacket sendPacket = new DatagramPacket(header, header.length, this.MDBAddress, this.MDBPortNumber);
-		this.MDBSocket.send(sendPacket);
-    }
-
-    public void splitFile(File file) throws IOException {
-        int partCounter = 1;//I like to name parts from 001, 002, 003, ...
-        //you can change it to 0 if you want 000, 001, ...
-
-        int sizeOfFiles = 1000 * 64;// 64KB
-        byte[] buffer = new byte[sizeOfFiles];
-
-        String fileName = file.getName();
-
-        //try-with-resources to ensure closing stream
-        try (FileInputStream fis = new FileInputStream(file);
-        BufferedInputStream bis = new BufferedInputStream(fis)) {
-
-            int bytesAmount = 0;
-            while ((bytesAmount = bis.read(buffer)) > 0) {
-                //write each chunk of data into separate file with different number in name
-                String filePartName = String.format("%s.%03d", fileName, partCounter++);
-                File newFile = new File(file.getParent(), filePartName);
-                try (FileOutputStream out = new FileOutputStream(newFile)) {
-                    out.write(buffer, 0, bytesAmount);
-                }
-            }
-        }
+        this.MDRSocket = new MulticastSocket(this.MDRPortNumber);
+        this.MDRSocket.joinGroup(this.MDRAddress);
     }
 
     public static void main(String[] args) throws Exception {
@@ -151,34 +107,23 @@ public class Peer implements RemoteInterface {
         }
 
         Peer peer = new Peer(args[0], args[1], args[2], args[3], args[4], args[5]);
-
-        /*
-        if(args[0].equals("1")) // ja nao existe
-        {
-            peer.sendPutChunk();
-            System.out.println("Sent");
-        }
-        
-		byte[] receiveData = new byte[256];
-		DatagramPacket packet = new DatagramPacket(receiveData, receiveData.length);
-        peer.MDBSocket.receive(packet);
-		String received = new String(packet.getData(), 0, packet.getLength());
-		System.out.println("Received packet: " + received);
-
-        File file = new File("project/example_file.txt");
-
-        peer.splitFile(file);
-
-        */
         
     }
 
     @Override
-    public void backupOperation(ArrayList<String> info) {
-        System.out.print("Received the following request: \n - BACKUP");
-        for(String i : info) {
-            System.out.print(" " + i);
-        }
+    public void backupOperation(ArrayList<String> info) throws Exception{
+        System.out.print("Received the following request: \n BACKUP ");
+        
+        String path = info.get(0);
+        int rd = Integer.parseInt(info.get(1));
+
+        System.out.print(path + " " + rd + "\n\n");
+
+        this.fileManager = new FileManager("1", path, rd);
+        ArrayList<Chunk> chunks = this.fileManager.splitFile();
+
+        this.MDBchannel.sendPutChunk("1", chunks.get(0), rd);
+        this.MDBchannel.receivePutChunk();
     }
 
     @Override
