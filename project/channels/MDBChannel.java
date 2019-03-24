@@ -9,35 +9,13 @@ import java.net.MulticastSocket;
 
 import project.database.Chunk;
 
-public class MDBChannel {
-    private InetAddress address;
-    private int portNumber;
-    private MulticastSocket socket;
-
-    private short peerID;
-    private float version;
-
+public class MDBChannel extends Channel{
     public MDBChannel(String MDBAddr, short peerId, float version) throws Exception{
-        String multicastHostName = MDBAddr.split(" ")[0];
-        String mcastPort = MDBAddr.split(" ")[1];
-
-        this.address = InetAddress.getByName(multicastHostName);
-        this.portNumber = Integer.parseInt(mcastPort);
-
-        // Join multicast group
-        this.socket = new MulticastSocket(this.portNumber);
-        this.socket.joinGroup(this.address);
-
-        this.peerID = peerId;
-        this.version = version;
-    }
-
-    public String createHeader(String messageType, String fileID, int chunkNumber, int replicationDegree){
-        return messageType + " " + this.version + " " + this.peerID + " " + fileID + " " + chunkNumber + " " + replicationDegree + "\r\n \r\n";
+        super(MDBAddr, peerId, version);
     }
 
     public void sendPutChunk(String fileID, Chunk chunk, int rd) throws Exception {
-        byte[] header = createHeader("PUTCHUNK", fileID, chunk.getId(), rd).getBytes();
+        byte[] header = super.createHeader("PUTCHUNK", fileID, chunk.getId(), rd).getBytes();
         byte[] chunkContent = chunk.getContent();
 
         byte[] putChunk = new byte[header.length + chunkContent.length];

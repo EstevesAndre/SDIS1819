@@ -4,7 +4,9 @@ import java.io.*;
 import java.net.*;
 import java.util.ArrayList;
 
+import project.channels.MCChannel;
 import project.channels.MDBChannel;
+import project.channels.MDRChannel;
 import project.database.Chunk;
 import project.database.FileManager;
 import project.rmi.RemoteInterface;
@@ -19,18 +21,11 @@ public class Peer implements RemoteInterface {
     private short peerID;
     private float version;
     private String accessPoint;
-    private MulticastSocket MCSocket;
-    //private MulticastSocket MDBSocket;
-    private MulticastSocket MDRSocket;
 
-    private InetAddress MCAddress;
-    private int MCPortNumber;
-    //private InetAddress MDBAddress;
-    //private int MDBPortNumber;
-    private InetAddress MDRAddress;
-    private int MDRPortNumber;
-
+    private MCChannel MCchannel;
     private MDBChannel MDBchannel;
+    private MDRChannel MDRchannel;
+
     private FileManager fileManager;
 
     public Peer(String version, String serverID, String accessPoint, String MCAddr, String MDBAddr, String MDRAddr) throws Exception {
@@ -41,10 +36,9 @@ public class Peer implements RemoteInterface {
         this.version = Float.parseFloat(version);
         this.accessPoint = accessPoint;
 
-        this.joinMC(MCAddr);
-        this.joinMDR(MDRAddr);
-
+        this.MCchannel = new MCChannel(MCAddr, this.peerID, this.version);
         this.MDBchannel = new MDBChannel(MDBAddr, this.peerID, this.version);
+        this.MDRchannel = new MDRChannel(MDRAddr, this.peerID, this.version);
 
         this.joinRMI();
     }
@@ -66,32 +60,6 @@ public class Peer implements RemoteInterface {
             //e.printStackTrace();
             System.exit(-2);
         }
-    }
-
-    public void joinMC(String MCAddr) throws Exception {
-
-        String multicastHostName = MCAddr.split(" ")[0];
-        String mcastPort = MCAddr.split(" ")[1];
-
-        this.MCAddress = InetAddress.getByName(multicastHostName);
-        this.MCPortNumber = Integer.parseInt(mcastPort);
-
-        // Join multicast group
-        this.MCSocket = new MulticastSocket(this.MCPortNumber);
-        this.MCSocket.joinGroup(this.MCAddress);
-    }
-
-    public void joinMDR(String MDRAddr) throws Exception {
-
-        String multicastHostName = MDRAddr.split(" ")[0];
-        String mcastPort = MDRAddr.split(" ")[1];
-
-        this.MDRAddress = InetAddress.getByName(multicastHostName);
-        this.MDRPortNumber = Integer.parseInt(mcastPort);
-
-        // Join multicast group
-        this.MDRSocket = new MulticastSocket(this.MDRPortNumber);
-        this.MDRSocket.joinGroup(this.MDRAddress);
     }
 
     public static void main(String[] args) throws Exception {
