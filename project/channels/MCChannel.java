@@ -11,6 +11,13 @@ public class MCChannel extends Channel implements Runnable{
         super(MCCAddr, peer);
     }
 
+    public boolean sendStored(String messageType, String fileID, int chunkNumber, int replicationDegree)
+    {
+        String message = super.createHeader(messageType, fileID, chunkNumber, replicationDegree);
+        
+        return true;
+    }
+
     @Override
     public void run() {
         try {

@@ -27,9 +27,11 @@ public class Chunk {
         this.desiredRD = rd;
     }
 
-    public void storeChunk(int peerID) {
+    public void storeChunk(int peerID) throws IOException {
         String filePartName = String.format("%s.%03d", this.fileID, this.id);
         File newFile = new File(peerID + "/" + filePartName);
+        newFile.getParentFile().mkdirs();
+        
         try (FileOutputStream out = new FileOutputStream(newFile)) {
             out.write(this.content, 0, this.size);
         }

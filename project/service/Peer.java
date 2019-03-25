@@ -49,6 +49,9 @@ public class Peer implements RemoteInterface {
         this.MDBchannel = new MDBChannel(MDBAddr, this);
         this.MDRchannel = new MDRChannel(MDRAddr, this);
 
+        this.backedUp = new HashSet<Pair<String,Integer>>();
+        this.backedUpChunks = new ArrayList<Chunk>();
+
         this.joinRMI();
     }
 
@@ -79,7 +82,7 @@ public class Peer implements RemoteInterface {
         return this.version;
     }
 
-    public void receivePutChunk(DatagramPacket receivePacket) {
+    public void receivePutChunk(DatagramPacket receivePacket) throws IOException {
         String[] received = new String(receivePacket.getData(), 0, receivePacket.getLength()).split("\r\n \r\n");
         String[] header = received[0].split("\\s+");
 
@@ -92,9 +95,9 @@ public class Peer implements RemoteInterface {
         String fileID = header[3];
         Integer chunkID = Integer.parseInt(header[4]);
 
-        if(!this.backedUp.contains(new Pair(fileID, chunkID))) {
+        if(!this.backedUp.contains(new Pair<String,Integer>(fileID, chunkID))) {
             int rd = Integer.parseInt(header[5]);
-            this.backedUp.add(new Pair(fileID, chunkID));
+            this.backedUp.add(new Pair<String,Integer>(fileID, chunkID));
 
             Chunk newChunk = new Chunk(fileID, chunkID, received[1].getBytes(), rd);
             this.backedUpChunks.add(newChunk);
