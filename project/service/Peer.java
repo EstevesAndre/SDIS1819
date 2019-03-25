@@ -2,8 +2,12 @@ package project.service;
 
 import java.io.*;
 import java.net.*;
+import javafx.util.Pair;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.HashSet;
 import java.util.concurrent.ThreadPoolExecutor;
+
 import java.util.concurrent.Executors;
 
 import project.channels.MCChannel;
@@ -28,7 +32,8 @@ public class Peer implements RemoteInterface {
     private MDBChannel MDBchannel;
     private MDRChannel MDRchannel;
 
-    private FileManager fileManager;
+    private ArrayList<Chunk> backedUpChunks;
+    private HashSet<Pair<String, Integer>> backedUp;
 
     private ThreadPoolExecutor executor;
 
@@ -40,9 +45,9 @@ public class Peer implements RemoteInterface {
         this.version = Float.parseFloat(version);
         this.accessPoint = accessPoint;
 
-        this.MCchannel = new MCChannel(MCAddr, this.peerID, this.version);
-        this.MDBchannel = new MDBChannel(MDBAddr, this.peerID, this.version);
-        this.MDRchannel = new MDRChannel(MDRAddr, this.peerID, this.version);
+        this.MCchannel = new MCChannel(MCAddr, this);
+        this.MDBchannel = new MDBChannel(MDBAddr, this);
+        this.MDRchannel = new MDRChannel(MDRAddr, this);
 
         this.joinRMI();
     }
@@ -64,6 +69,40 @@ public class Peer implements RemoteInterface {
             //e.printStackTrace();
             System.exit(-2);
         }
+    }
+
+    public short getID() {
+        return this.peerID;
+    }
+
+    public float getVersion() {
+        return this.version;
+    }
+
+    public void receivePutChunk(DatagramPacket receivePacket) {
+        String[] received = new String(receivePacket.getData(), 0, receivePacket.getLength()).split("\r\n \r\n");
+        String[] header = received[0].split("\\s+");
+
+        // if peer is reading its own message
+        if(Integer.parseInt(header[2]) == this.peerID) {
+            System.out.println("Reading my own message...\n");
+            return;
+        }
+
+        String fileID = header[3];
+        Integer chunkID = Integer.parseInt(header[4]);
+
+        if(!this.backedUp.contains(new Pair(fileID, chunkID))) {
+            int rd = Integer.parseInt(header[5]);
+            this.backedUp.add(new Pair(fileID, chunkID));
+
+            Chunk newChunk = new Chunk(fileID, chunkID, received[1].getBytes(), rd);
+            this.backedUpChunks.add(newChunk);
+            newChunk.storeChunk(this.peerID);
+            
+        }
+
+        //responder com STORED
     }
 
     public static void main(String[] args) throws Exception {
@@ -93,11 +132,9 @@ public class Peer implements RemoteInterface {
 
         System.out.print(path + " " + rd + "\n\n");
 
-        this.fileManager = new FileManager("1", path, rd);
-        ArrayList<Chunk> chunks = this.fileManager.splitFile();
+        ArrayList<Chunk> chunks = FileManager.splitFile(path);
 
         this.MDBchannel.sendPutChunk("1", chunks.get(0), rd);
-        this.MDBchannel.receivePutChunk();
     }
 
     @Override

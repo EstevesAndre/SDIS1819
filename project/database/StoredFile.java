@@ -1,5 +1,6 @@
 package project.database;
 
-public class StoredFiles {
+public class StoredFile {
+    
     
 }

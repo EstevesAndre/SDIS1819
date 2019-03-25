@@ -3,6 +3,8 @@ package project.channels;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
 
+import project.service.Peer;
+
 public class Channel {
     protected InetAddress address;
     protected int portNumber;
@@ -10,8 +12,9 @@ public class Channel {
 
     protected short peerID;
     protected float version;
+    protected Peer peer;
 
-    public Channel(String MDBAddr, short peerId, float version) throws Exception{
+    public Channel(String MDBAddr, Peer peer) throws Exception{
         String multicastHostName = MDBAddr.split(" ")[0];
         String mcastPort = MDBAddr.split(" ")[1];
 
@@ -22,8 +25,9 @@ public class Channel {
         this.socket = new MulticastSocket(this.portNumber);
         this.socket.joinGroup(this.address);
 
-        this.peerID = peerId;
-        this.version = version;
+        this.peer = peer;
+        this.peerID = peer.getID();
+        this.version = peer.getVersion();
     }
 
     public String createHeader(String messageType, String fileID, int chunkNumber, int replicationDegree){

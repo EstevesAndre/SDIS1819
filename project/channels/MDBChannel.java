@@ -8,12 +8,14 @@ import java.net.InetAddress;
 import java.net.MulticastSocket;
 import java.util.concurrent.TimeUnit;
 import java.lang.Runnable;
+import java.util.regex.*;
 
 import project.database.Chunk;
+import project.service.Peer;
 
 public class MDBChannel extends Channel implements Runnable{
-    public MDBChannel(String MDBAddr, short peerId, float version) throws Exception{
-        super(MDBAddr, peerId, version);
+    public MDBChannel(String MDBAddr, Peer peer) throws Exception{
+        super(MDBAddr, peer);
     }
 
     public void sendPutChunk(String fileID, Chunk chunk, int rd) throws Exception {
@@ -28,26 +30,19 @@ public class MDBChannel extends Channel implements Runnable{
 		this.socket.send(sendPacket);
     }
 
-    public void receivePutChunk() throws IOException{
-        byte[] receiveData = new byte[66000];
-        DatagramPacket receivePacket = new DatagramPacket(receiveData, 66000);
-
-        this.socket.receive(receivePacket);
-
-        String[] received = new String(receivePacket.getData(), 0, receivePacket.getLength()).split("\r\n \r\n");
-
-        System.out.println("RECEIVED HEADER: " + received[0]);
-
-    }
-
     @Override
     public void run() {
         try {
+            byte[] receiveData = new byte[66000];
+            DatagramPacket receivePacket = new DatagramPacket(receiveData, 66000);
+
             while(true) {
-                System.out.println("Executing: MDB");
-                TimeUnit.SECONDS.sleep(2); 
+                System.out.println("Reading from MDBChannel");
+                this.socket.receive(receivePacket);
+                this.peer.receivePutChunk(receivePacket);
             }
-        } catch (InterruptedException e) {
+
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }

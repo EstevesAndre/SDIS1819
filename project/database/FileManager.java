@@ -12,7 +12,7 @@ public class FileManager {
     private String id;
     private String path;
     private int rd;
-
+    private int numberOfChunks;
 
     public FileManager(String id, String path, int rd) {
         this.id = id;
@@ -20,14 +20,13 @@ public class FileManager {
         this.rd = rd;
     }
 
-    public ArrayList<Chunk> splitFile() throws IOException {
-        File file = new File(this.path);
+    public static ArrayList<Chunk> splitFile(String path) throws IOException {
+        File file = new File(path);
 
-        int partCounter = 1;
+        int partCounter = 0;
         ArrayList<Chunk> chunks = new ArrayList<Chunk>();
 
-        int sizeOfFiles = 1000 * 64;// 64KB
-        byte[] buffer = new byte[sizeOfFiles];
+        byte[] buffer = new byte[MAX_CHUNK_SIZE];
 
         //String fileName = file.getName();
 
