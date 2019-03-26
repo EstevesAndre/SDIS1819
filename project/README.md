@@ -4,9 +4,9 @@
 $ ./compile.sh 
 ```
 ### Run commands inside bin folder:
-1. Start RMI regist with port 1099
+1. Start RMI registry 
 ``` 
-$ rmiregistry &
+$ rmiregistry 
 ```
 2. Start a peer
 ``` 
