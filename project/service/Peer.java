@@ -128,6 +128,13 @@ public class Peer implements RemoteInterface {
 
     @Override
     public void backupOperation(ArrayList<String> info) throws Exception{
+
+        if(info.size() != 2)
+        {
+            System.out.println("Wrong number of arguments for BACKUP operation\n");
+			System.exit(-1);
+        }
+
         System.out.print("Received the following request: \n BACKUP ");
         
         String path = info.get(0);
