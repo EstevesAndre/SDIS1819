@@ -18,6 +18,10 @@ public class MCChannel extends Channel implements Runnable{
         return true;
     }
 
+    public void sendMessage(byte[] msg) {
+        
+    }
+
     @Override
     public void run() {
         try {

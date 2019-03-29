@@ -44,4 +44,8 @@ public class Chunk {
     public byte[] getContent() {
         return this.content;
     }
+
+    public void setReplicationDegree(int newRD) {
+        this.desiredRD = newRD;
+    }
 }

@@ -38,7 +38,7 @@ public class TestApp {
     }
 
     // Usage: java project/service/TestApp <peer_ap> <sub_protocol> <opnd_1> <opnd_2> 
-    // Example: java project/service/TestApp "localhost RemoteInterface" BACKUP ../example_file.txt 2
+    // Example: java project/service/TestApp "localhost RemoteInterface" BACKUP ./example_file.txt 2
     public static void main(String args[]) throws Exception {
 
         if(args.length != 2 && args.length != 3 && args.length != 4)
@@ -83,6 +83,11 @@ public class TestApp {
         }
         catch (java.rmi.RemoteException e) {
             System.err.println("ERROR --> " + this.getClass() + ": Unable to make request using RMI");
+            System.exit(-2);
+        }
+        catch(Exception e)
+        {
+            System.err.println("ERROR --> " + this.getClass() + ": File not found!");
             System.exit(-2);
         }
 

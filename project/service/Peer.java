@@ -121,7 +121,7 @@ public class Peer implements RemoteInterface {
         }
 
         Peer peer = new Peer(args[0], args[1], args[2], args[3], args[4], args[5]);
-        peer.executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(2);
+        peer.executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(30);
         peer.executor.execute(peer.MDBchannel);
         peer.executor.execute(peer.MCchannel);
     }
@@ -135,15 +135,15 @@ public class Peer implements RemoteInterface {
 			System.exit(-1);
         }
 
-        System.out.print("Received the following request: \n BACKUP ");
+        System.out.print("Received the following request: \n - BACKUP ");
         
         String path = info.get(0);
         int rd = Integer.parseInt(info.get(1));
 
-        System.out.print(path + " " + rd + "\n\n");
+        //System.out.print(path + " " + rd + "\n\n");
 
         ArrayList<Chunk> chunks = FileManager.splitFile(path);
-
+        
         this.MDBchannel.sendPutChunk("1", chunks.get(0), rd);
     }
 

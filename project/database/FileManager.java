@@ -47,6 +47,10 @@ public class FileManager {
                 //}
             }
         }
+        catch(Exception e)
+        {
+            System.err.println("WARNING --> : File: \"" + path + "\" not found!\n");
+        }
 
         return chunks;
     }
