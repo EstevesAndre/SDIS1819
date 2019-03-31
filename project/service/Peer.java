@@ -91,14 +91,16 @@ public class Peer implements RemoteInterface {
             System.out.println("Reading my own message...\n");
             return;
         }
-
+        
         String fileID = header[3];
         Integer chunkID = Integer.parseInt(header[4]);
-
+        //System.out.println("receivePutChunk " + fileID + " " + chunkID);
+        
         if(!this.backedUp.contains(new Pair<String,Integer>(fileID, chunkID))) {
             int rd = Integer.parseInt(header[5]);
             this.backedUp.add(new Pair<String,Integer>(fileID, chunkID));
 
+            //System.out.println("stored");
             Chunk newChunk = new Chunk(fileID, chunkID, received[1].getBytes(), rd);
             this.backedUpChunks.add(newChunk);
             newChunk.storeChunk(this.peerID);
@@ -139,12 +141,14 @@ public class Peer implements RemoteInterface {
         
         String path = info.get(0);
         int rd = Integer.parseInt(info.get(1));
-
-        //System.out.print(path + " " + rd + "\n\n");
-
         ArrayList<Chunk> chunks = FileManager.splitFile(path);
+        String fileID = "1";
         
-        this.MDBchannel.sendPutChunk("1", chunks.get(0), rd);
+        for(int i = 0; i < chunks.size(); i++)
+        {
+            this.MDBchannel.sendPutChunk(fileID, chunks.get(i), rd);
+            Thread.sleep(500);
+        }
     }
 
     @Override
