@@ -12,6 +12,8 @@ import java.util.regex.*;
 
 import project.database.Chunk;
 import project.service.Peer;
+import project.threads.ReceiveMessage;
+
 
 public class MDBChannel extends Channel implements Runnable{
     public MDBChannel(String MDBAddr, Peer peer) throws Exception{
@@ -38,8 +40,9 @@ public class MDBChannel extends Channel implements Runnable{
 
             while(true) {
                 System.out.println("Reading from MDBChannel");
+
                 this.socket.receive(receivePacket);
-                this.peer.receivePutChunk(receivePacket);
+                this.peer.getExec().execute(new ReceiveMessage(this.peer, receivePacket));
             }
 
         } catch (IOException e) {

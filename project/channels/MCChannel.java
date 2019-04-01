@@ -5,6 +5,7 @@ import java.lang.Runnable;
 import java.net.DatagramPacket;
 import java.util.concurrent.TimeUnit;
 
+import project.threads.ReceiveMessage;
 import project.service.Peer;
 
 public class MCChannel extends Channel implements Runnable{
@@ -32,9 +33,7 @@ public class MCChannel extends Channel implements Runnable{
                 //System.out.println("Executing: MCC");
                 System.out.println("Reading from MCChannel");
                 this.socket.receive(receivePacket);
-                this.peer.receiveMessage(receivePacket);
-
-                //TimeUnit.SECONDS.sleep(2);
+                this.peer.getExec().execute(new ReceiveMessage(this.peer, receivePacket));
             }
         } catch (IOException e) {
             e.printStackTrace();

@@ -16,6 +16,7 @@ import project.channels.MDRChannel;
 import project.database.Chunk;
 import project.database.FileManager;
 import project.rmi.RemoteInterface;
+import project.threads.SendPutChunk;
 
 import java.rmi.registry.Registry;
 import java.rmi.registry.LocateRegistry;
@@ -82,6 +83,10 @@ public class Peer implements RemoteInterface {
         return this.version;
     }
 
+    public ThreadPoolExecutor getExec() {
+        return this.executor;
+    }
+
     public void receivePutChunk(DatagramPacket receivePacket) throws IOException {
         String[] received = new String(receivePacket.getData(), 0, receivePacket.getLength()).split("\r\n \r\n");
         String[] header = received[0].split("\\s+");
@@ -94,7 +99,7 @@ public class Peer implements RemoteInterface {
         
         String fileID = header[3];
         Integer chunkID = Integer.parseInt(header[4]);
-        //System.out.println("receivePutChunk " + fileID + " " + chunkID);
+        System.out.println("receivePutChunk " + fileID + " " + chunkID);
         
         //if(spaceAvailable() >= received[1].length)
         //{
@@ -118,7 +123,7 @@ public class Peer implements RemoteInterface {
     }
 
     public void receiveMessage(DatagramPacket receivedPacket) throws IOException {
-        System.out.println(new String(receivedPacket.getData(), 0, receivedPacket.getLength()));
+
         String received[] = new String(receivedPacket.getData(), 0, receivedPacket.getLength()).split(" ");
         
         switch(received[0])
@@ -128,7 +133,10 @@ public class Peer implements RemoteInterface {
                 if(Integer.parseInt(received[2]) == this.peerID) // verifies if is not the send message peer
                     return;
                 System.out.println("STORED");
+
             break;
+            case "PUTCHUNK":
+                this.receivePutChunk(receivedPacket);
             default:
             break;
         }
@@ -170,9 +178,10 @@ public class Peer implements RemoteInterface {
         
         for(int i = 0; i < chunks.size(); i++)
         {
-            this.MDBchannel.sendPutChunk(fileID, chunks.get(i), rd);
+            this.executor.execute(new SendPutChunk(this.MDBchannel, fileID, chunks.get(i), rd));
             Thread.sleep(500);
         }
+        System.out.println(this.executor.getActiveCount());
     }
 
     @Override
