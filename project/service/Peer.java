@@ -96,18 +96,25 @@ public class Peer implements RemoteInterface {
         Integer chunkID = Integer.parseInt(header[4]);
         //System.out.println("receivePutChunk " + fileID + " " + chunkID);
         
-        if(!this.backedUp.contains(new Pair<String,Integer>(fileID, chunkID))) {
+        //if(spaceAvailable() >= received[1].length)
+        //{
             int rd = Integer.parseInt(header[5]);
-            this.backedUp.add(new Pair<String,Integer>(fileID, chunkID));
-
-            //System.out.println("stored");
-            Chunk newChunk = new Chunk(fileID, chunkID, received[1].getBytes(), rd);
-            this.backedUpChunks.add(newChunk);
-            newChunk.storeChunk(this.peerID);
             
-        }
+            if(!this.backedUp.contains(new Pair<String,Integer>(fileID, chunkID))) {
+                
+                this.backedUp.add(new Pair<String,Integer>(fileID, chunkID));
 
-        //responder com STORED
+                Chunk newChunk = new Chunk(fileID, chunkID, received[1].getBytes(), rd);
+                this.backedUpChunks.add(newChunk);
+                newChunk.storeChunk(this.peerID);       
+            }
+
+            this.MCchannel.sendStored("STORED", fileID, chunkID, rd);
+
+        //}
+        // error, no space available
+        
+
     }
 
     public static void main(String[] args) throws Exception {
@@ -129,7 +136,7 @@ public class Peer implements RemoteInterface {
     }
 
     @Override
-    public void backupOperation(ArrayList<String> info) throws Exception{
+    public void backupOperation(ArrayList<String> info) throws Exception {
 
         if(info.size() != 2)
         {

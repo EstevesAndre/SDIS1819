@@ -18,7 +18,7 @@ public class MDBChannel extends Channel implements Runnable{
         super(MDBAddr, peer);
     }
 
-    public void sendPutChunk(String fileID, Chunk chunk, int rd) throws Exception {
+    public void sendPutChunk(String fileID, Chunk chunk, int rd) throws IOException {
         byte[] header = super.createHeader("PUTCHUNK", fileID, chunk.getId(), rd).getBytes();
         byte[] chunkContent = chunk.getContent();
         //System.out.println("sendPutChunk");

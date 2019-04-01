@@ -1,6 +1,8 @@
 package project.channels;
 
+import java.io.IOException;
 import java.lang.Runnable;
+import java.net.DatagramPacket;
 import java.util.concurrent.TimeUnit;
 
 import project.service.Peer;
@@ -11,26 +13,30 @@ public class MCChannel extends Channel implements Runnable{
         super(MCCAddr, peer);
     }
 
-    public boolean sendStored(String messageType, String fileID, int chunkNumber, int replicationDegree)
-    {
-        String message = super.createHeader(messageType, fileID, chunkNumber, replicationDegree);
+    public void sendStored(String messageType, String fileID, int chunkNumber, int replicationDegree) throws IOException {
         
-        return true;
-    }
-
-    public void sendMessage(byte[] msg) {
+        byte[] message = super.createHeader(messageType, fileID, chunkNumber, replicationDegree).getBytes();
         
+        DatagramPacket sendPacket = new DatagramPacket(message, message.length, this.address, this.portNumber);
+		this.socket.send(sendPacket);
     }
 
     @Override
     public void run() {
         try {
+            byte[] receiveData = new byte[66000];
+            DatagramPacket receivePacket = new DatagramPacket(receiveData, 66000);
+
             while(true) {
                 //Long duration = (long) (Math.random() * 10);
                 //System.out.println("Executing: MCC");
+                System.out.println("Reading from MCChannel");
+                this.socket.receive(receivePacket);
+                String received = new String(receivePacket.getData(), 0, receivePacket.getLength());
+                System.out.println(received);
                 TimeUnit.SECONDS.sleep(2);
             }
-        } catch (InterruptedException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
