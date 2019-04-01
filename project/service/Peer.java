@@ -117,6 +117,23 @@ public class Peer implements RemoteInterface {
 
     }
 
+    public void receiveMessage(DatagramPacket receivedPacket) throws IOException {
+        System.out.println(new String(receivedPacket.getData(), 0, receivedPacket.getLength()));
+        String received[] = new String(receivedPacket.getData(), 0, receivedPacket.getLength()).split(" ");
+        
+        switch(received[0])
+        {
+            case "STORED": //ex: STORED version(1.0) peerID(12) fileID chunkID RD
+
+                if(Integer.parseInt(received[2]) == this.peerID) // verifies if is not the send message peer
+                    return;
+                System.out.println("STORED");
+            break;
+            default:
+            break;
+        }
+    }
+
     public static void main(String[] args) throws Exception {
         
         // example: java project/service/Peer 1.0 1234 RemoteInterface "230.0.0.0 9876" "230.0.0.1 9877" "230.0.0.2 9878"

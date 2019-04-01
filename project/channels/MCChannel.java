@@ -32,9 +32,9 @@ public class MCChannel extends Channel implements Runnable{
                 //System.out.println("Executing: MCC");
                 System.out.println("Reading from MCChannel");
                 this.socket.receive(receivePacket);
-                String received = new String(receivePacket.getData(), 0, receivePacket.getLength());
-                System.out.println(received);
-                TimeUnit.SECONDS.sleep(2);
+                this.peer.receiveMessage(receivePacket);
+
+                //TimeUnit.SECONDS.sleep(2);
             }
         } catch (IOException e) {
             e.printStackTrace();
