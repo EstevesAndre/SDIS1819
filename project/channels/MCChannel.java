@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.lang.Runnable;
 import java.net.DatagramPacket;
 import java.util.concurrent.TimeUnit;
+import java.util.Arrays;
 
 import project.threads.ReceiveMessage;
 import project.service.Peer;
@@ -24,15 +25,16 @@ public class MCChannel extends Channel implements Runnable{
 
     @Override
     public void run() {
+        
         try {
             byte[] receiveData = new byte[66000];
-            DatagramPacket receivePacket = new DatagramPacket(receiveData, 66000);
 
             while(true) {
-                //Long duration = (long) (Math.random() * 10);
-                //System.out.println("Executing: MCC");
+                DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
+
                 System.out.println("Reading from MCChannel");
                 this.socket.receive(receivePacket);
+                
                 this.peer.getExec().execute(new ReceiveMessage(this.peer, receivePacket));
             }
         } catch (IOException e) {

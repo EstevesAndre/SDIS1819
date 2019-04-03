@@ -19,11 +19,11 @@ import project.rmi.RemoteInterface;
 import project.threads.SendPutChunk;
 
 import java.rmi.registry.Registry;
+import java.rmi.Remote;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.server.UnicastRemoteObject;
 
-
-public class Peer implements RemoteInterface {
+public class Peer implements RemoteInterface, Remote {
 
     private short peerID;
     private float version;
@@ -88,7 +88,8 @@ public class Peer implements RemoteInterface {
     }
 
     public void receivePutChunk(DatagramPacket receivePacket) throws IOException {
-        String[] received = new String(receivePacket.getData(), 0, receivePacket.getLength()).split("\r\n \r\n");
+        
+        String[] received = new String(receivePacket.getData(), 0, receivePacket.getLength()).split("\r\n\r\n");
         String[] header = received[0].split("\\s+");
 
         // if peer is reading its own message
@@ -120,26 +121,6 @@ public class Peer implements RemoteInterface {
         // error, no space available
         
 
-    }
-
-    public void receiveMessage(DatagramPacket receivedPacket) throws IOException {
-
-        String received[] = new String(receivedPacket.getData(), 0, receivedPacket.getLength()).split(" ");
-        
-        switch(received[0])
-        {
-            case "STORED": //ex: STORED version(1.0) peerID(12) fileID chunkID RD
-
-                if(Integer.parseInt(received[2]) == this.peerID) // verifies if is not the send message peer
-                    return;
-                System.out.println("STORED");
-
-            break;
-            case "PUTCHUNK":
-                this.receivePutChunk(receivedPacket);
-            default:
-            break;
-        }
     }
 
     public static void main(String[] args) throws Exception {
@@ -179,9 +160,9 @@ public class Peer implements RemoteInterface {
         for(int i = 0; i < chunks.size(); i++)
         {
             this.executor.execute(new SendPutChunk(this.MDBchannel, fileID, chunks.get(i), rd));
-            Thread.sleep(500);
+            Thread.sleep(50);
         }
-        System.out.println(this.executor.getActiveCount());
+        //System.out.println(this.executor.getActiveCount());
     }
 
     @Override

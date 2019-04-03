@@ -9,6 +9,7 @@ import java.net.MulticastSocket;
 import java.util.concurrent.TimeUnit;
 import java.lang.Runnable;
 import java.util.regex.*;
+import java.util.Arrays;
 
 import project.database.Chunk;
 import project.service.Peer;
@@ -36,15 +37,16 @@ public class MDBChannel extends Channel implements Runnable{
     public void run() {
         try {
             byte[] receiveData = new byte[66000];
-            DatagramPacket receivePacket = new DatagramPacket(receiveData, 66000);
-
+            
             while(true) {
+                DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
+    
                 System.out.println("Reading from MDBChannel");
-
                 this.socket.receive(receivePacket);
-                this.peer.getExec().execute(new ReceiveMessage(this.peer, receivePacket));
-            }
 
+                this.peer.getExec().execute(new ReceiveMessage(this.peer, receivePacket));
+                
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }

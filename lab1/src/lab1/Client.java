@@ -1,7 +1,6 @@
 package lab1;
 
 import java.net.*;
-import java.io.*;
 
 /**
  * Compile as javac *.java
