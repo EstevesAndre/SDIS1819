@@ -2,9 +2,10 @@ package project.service;
 
 import java.io.*;
 import java.net.*;
-import javafx.util.Pair;
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.HashSet;
 import java.util.concurrent.ThreadPoolExecutor;
 
@@ -34,8 +35,7 @@ public class Peer implements RemoteInterface, Remote {
     private MDRChannel MDRchannel;
 
     private ArrayList<Chunk> backedUpChunks;
-    private HashSet<Pair<String, Integer>> backedUp;
-
+    private HashSet<Map.Entry<String,Integer>> backedUp;
     private ThreadPoolExecutor executor;
 
     public Peer(String version, String serverID, String accessPoint, String MCAddr, String MDBAddr, String MDRAddr) throws Exception {
@@ -50,7 +50,7 @@ public class Peer implements RemoteInterface, Remote {
         this.MDBchannel = new MDBChannel(MDBAddr, this);
         this.MDRchannel = new MDRChannel(MDRAddr, this);
 
-        this.backedUp = new HashSet<Pair<String,Integer>>();
+        this.backedUp = new HashSet<Map.Entry<String,Integer>>();
         this.backedUpChunks = new ArrayList<Chunk>();
 
         this.joinRMI();
@@ -105,11 +105,11 @@ public class Peer implements RemoteInterface, Remote {
         //if(spaceAvailable() >= received[1].length)
         //{
             int rd = Integer.parseInt(header[5]);
+            AbstractMap.SimpleEntry<String, Integer> chunk = new AbstractMap.SimpleEntry<String, Integer>(fileID, chunkID);
             
-            if(!this.backedUp.contains(new Pair<String,Integer>(fileID, chunkID))) {
+            if(!this.backedUp.contains(chunk)) {
                 
-                this.backedUp.add(new Pair<String,Integer>(fileID, chunkID));
-
+                this.backedUp.add(chunk);
                 Chunk newChunk = new Chunk(fileID, chunkID, received[1].getBytes(), rd);
                 this.backedUpChunks.add(newChunk);
                 newChunk.storeChunk(this.peerID);       
