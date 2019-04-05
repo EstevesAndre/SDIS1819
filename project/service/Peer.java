@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.HashSet;
+import java.util.HashMap;
 import java.util.concurrent.ThreadPoolExecutor;
 
 import java.util.concurrent.Executors;
@@ -36,6 +37,8 @@ public class Peer implements RemoteInterface, Remote {
 
     private ArrayList<Chunk> backedUpChunks;
     private HashSet<Map.Entry<String,Integer>> backedUp;
+    private HashMap<Map.Entry<String,Integer>, Integer> initiatedChunks;
+
     private ThreadPoolExecutor executor;
 
     public Peer(String version, String serverID, String accessPoint, String MCAddr, String MDBAddr, String MDRAddr) throws Exception {
@@ -52,6 +55,7 @@ public class Peer implements RemoteInterface, Remote {
 
         this.backedUp = new HashSet<Map.Entry<String,Integer>>();
         this.backedUpChunks = new ArrayList<Chunk>();
+        this.initiatedChunks = new HashMap<Map.Entry<String,Integer>, Integer>();
 
         this.joinRMI();
     }
@@ -115,10 +119,22 @@ public class Peer implements RemoteInterface, Remote {
                 newChunk.storeChunk(this.peerID);       
             }
 
-            this.MCchannel.sendStored("STORED", fileID, chunkID, rd);
+            this.MCchannel.sendStored(fileID, chunkID);
 
         //}
         // error, no space available
+        
+
+    }
+
+    public void receiveStored(String[] message) {
+        
+        // verifies if is not the send message peer
+        if(Integer.parseInt(message[2]) == this.peerID)
+            return;
+
+        String fileId = message[3];
+        int chunkId = Integer.parseInt(message[4]);
         
 
     }
@@ -157,11 +173,13 @@ public class Peer implements RemoteInterface, Remote {
         ArrayList<Chunk> chunks = FileManager.splitFile(path);
         String fileID = "1";
         
-        for(int i = 0; i < chunks.size(); i++)
-        {
+        for(int i = 0; i < chunks.size(); i++){
+            AbstractMap.SimpleEntry<String, Integer> initiatedChunk = new AbstractMap.SimpleEntry<String, Integer>(fileID, i);
+            this.initiatedChunks.put(initiatedChunk, 0);
             this.executor.execute(new SendPutChunk(this.MDBchannel, fileID, chunks.get(i), rd));
             Thread.sleep(50);
         }
+
         //System.out.println(this.executor.getActiveCount());
     }
 

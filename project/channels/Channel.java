@@ -34,4 +34,8 @@ public class Channel {
         return messageType + " " + this.version + " " + this.peerID + " " + fileID + " " + chunkNumber + " " + replicationDegree + "\r\n\r\n";
     }
 
+    public String createHeader(String messageType, String fileID, int chunkNumber){
+        return messageType + " " + this.version + " " + this.peerID + " " + fileID + " " + chunkNumber + "\r\n\r\n";
+    }
+
 }

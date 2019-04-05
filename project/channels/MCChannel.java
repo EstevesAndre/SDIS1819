@@ -15,9 +15,9 @@ public class MCChannel extends Channel implements Runnable{
         super(MCCAddr, peer);
     }
 
-    public void sendStored(String messageType, String fileID, int chunkNumber, int replicationDegree) throws IOException {
+    public void sendStored(String fileID, int chunkNumber) throws IOException {
         
-        byte[] message = super.createHeader(messageType, fileID, chunkNumber, replicationDegree).getBytes();
+        byte[] message = super.createHeader("STORED", fileID, chunkNumber).getBytes();
         
         DatagramPacket sendPacket = new DatagramPacket(message, message.length, this.address, this.portNumber);
 		this.socket.send(sendPacket);

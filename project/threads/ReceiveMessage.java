@@ -22,12 +22,12 @@ public class ReceiveMessage implements Runnable{
     @Override
     public void run() {
         try {
-            String[] received = new String(this.packet.getData(), 0, this.packet.getLength()).trim().split(" ");
+            String[] received = new String(this.packet.getData(), 0, this.packet.getLength()).trim().split("\\s+");
 
             switch(received[0])
             {
                 case "STORED": //ex: STORED version(1.0) peerID(12) fileID chunkID RD
-                    receivedStored(received);
+                    this.peer.receiveStored(received);
                 break;
                 case "PUTCHUNK":
                     Thread.sleep((long)(Math.random() * 1000)%400);
@@ -41,16 +41,5 @@ public class ReceiveMessage implements Runnable{
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-    }
-
-    private void receivedStored(String[] message) {
-        
-        // verifies if is not the send message peer
-        if(Integer.parseInt(message[2]) == this.peer.getID())
-            return;
-
-        
-        //for(int i = 0; i < message.length; i++)
-        //    System.out.println(message[i]);
     }
 }
