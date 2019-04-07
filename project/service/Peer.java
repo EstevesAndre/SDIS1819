@@ -36,8 +36,7 @@ public class Peer implements RemoteInterface, Remote {
     private MDBChannel MDBchannel;
     private MDRChannel MDRchannel;
 
-    private ArrayList<Chunk> backedUpChunks;
-    private HashSet<Map.Entry<String,Integer>> backedUp;
+    private HashMap<Map.Entry<String,Integer>, Chunk> backedUpChunks;
     private HashMap<Map.Entry<String,Integer>, InitiatedChunk> initiatedChunks;
 
     private ThreadPoolExecutor executor;
@@ -54,8 +53,7 @@ public class Peer implements RemoteInterface, Remote {
         this.MDBchannel = new MDBChannel(MDBAddr, this);
         this.MDRchannel = new MDRChannel(MDRAddr, this);
 
-        this.backedUp = new HashSet<Map.Entry<String,Integer>>();
-        this.backedUpChunks = new ArrayList<Chunk>();
+        this.backedUpChunks = new HashMap<Map.Entry<String,Integer>, Chunk>();
         this.initiatedChunks = new HashMap<Map.Entry<String,Integer>, InitiatedChunk>();
 
         this.joinRMI();
@@ -111,11 +109,9 @@ public class Peer implements RemoteInterface, Remote {
             int rd = Integer.parseInt(header[5]);
             AbstractMap.SimpleEntry<String, Integer> chunk = new AbstractMap.SimpleEntry<String, Integer>(fileID, chunkID);
             
-            if(!this.backedUp.contains(chunk)) {
-                
-                this.backedUp.add(chunk);
+            if(!this.backedUpChunks.containsKey(chunk)) {
                 Chunk newChunk = new Chunk(fileID, chunkID, received[1].getBytes(), rd);
-                this.backedUpChunks.add(newChunk);
+                this.backedUpChunks.put(chunk, newChunk);
                 newChunk.storeChunk(this.peerID);       
             }
 
@@ -144,10 +140,10 @@ public class Peer implements RemoteInterface, Remote {
             initiated.addStorer(sender);
         }
 
-        AbstractMap.SimpleEntry<String, Integer> chunkk = new AbstractMap.SimpleEntry<String, Integer>(fileId, chunkId);
+        AbstractMap.SimpleEntry<String, Integer> chunk = new AbstractMap.SimpleEntry<String, Integer>(fileId, chunkId);
             
-        if(!this.backedUp.contains(chunkk)){
-
+        if(this.backedUpChunks.containsKey(chunk)){
+            this.backedUpChunks.get(chunk).addStorer(sender);
         }
     }
 
@@ -200,7 +196,8 @@ public class Peer implements RemoteInterface, Remote {
             }
         }
 
-        System.out.println(this.executor.getActiveCount());
+        System.out.println("Reached desired RD, finished backup operation.");
+        //System.out.println(this.executor.getActiveCount());
     }
 
     @Override

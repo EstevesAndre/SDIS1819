@@ -18,10 +18,6 @@ public class InitiatedChunk {
         }
     }
 
-    public HashSet<Integer> getStorers() {
-        return storers;
-    }
-
     public int getObservedRD(){
         return observedRD;
     }

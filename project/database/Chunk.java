@@ -1,6 +1,7 @@
 package project.database;
 
 import java.net.*;
+import java.util.HashSet;
 import java.io.*;
 
 public class Chunk {
@@ -12,11 +13,15 @@ public class Chunk {
     private int observedRD;
     private int desiredRD;
 
+    private HashSet<Integer> storers; // id's of the peers that backed up the chunk
+
     private int size;
 
     public Chunk(int id, byte[] content) {
         this.id = id;
         this.content = content;
+        this.observedRD = 0;
+        storers =  new HashSet<Integer>();
     }
 
     public Chunk(String fileID, int id, byte[] content, int rd) {
@@ -25,6 +30,8 @@ public class Chunk {
         this.content = content;
         this.size = content.length;
         this.desiredRD = rd;
+        this.observedRD = 0;
+        storers =  new HashSet<Integer>();
     }
 
     public void storeChunk(int peerID) throws IOException {
@@ -48,4 +55,15 @@ public class Chunk {
     public void setReplicationDegree(int newRD) {
         this.desiredRD = newRD;
     }
+
+    public void addStorer(int storer) {
+        if(storers.add(storer)) {
+            observedRD++;
+        }
+    }
+
+    public int getObservedRD(){
+        return observedRD;
+    }
+
 }
