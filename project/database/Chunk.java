@@ -7,15 +7,14 @@ import java.io.*;
 public class Chunk {
     private int id;
     private String fileID;
-
+    private String fileName;
+    private int size;
     private byte[] content;
 
     private int observedRD;
     private int desiredRD;
 
     private HashSet<Integer> storers; // id's of the peers that backed up the chunk
-
-    private int size;
 
     public Chunk(int id, byte[] content) {
         this.id = id;
@@ -35,13 +34,19 @@ public class Chunk {
     }
 
     public void storeChunk(int peerID) throws IOException {
-        String filePartName = String.format("%s.%03d", this.fileID, this.id);
-        File newFile = new File(peerID + "/backup/" + filePartName);
+        this.fileName = String.format("%s.%03d", this.fileID, this.id);
+        File newFile = new File(peerID + "/backup/" + this.fileName);
         newFile.getParentFile().mkdirs();
         
         try (FileOutputStream out = new FileOutputStream(newFile)) {
             out.write(this.content, 0, this.size);
         }
+    }
+
+    public void deleteChunk(int peerID) throws IOException {
+        File file = new File(peerID + "/backup/" + this.fileName);
+
+        file.delete();
     }
 
     public int getId(){

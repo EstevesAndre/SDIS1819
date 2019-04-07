@@ -33,6 +33,8 @@ public class ReceiveMessage implements Runnable{
                     Thread.sleep((long)(Math.random() * 1000)%400);
                     this.peer.receivePutChunk(this.packet);
                 break;
+                case "DELETE":
+                    this.peer.receiveDelete(received);
                 default:
                 break;
             }

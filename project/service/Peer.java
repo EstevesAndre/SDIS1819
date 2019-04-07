@@ -147,11 +147,37 @@ public class Peer implements RemoteInterface, Remote {
         }
     }
 
+    public void receiveDelete(String[] message) throws IOException {
+        String fileId = message[3];
+
+        int chunkId = 0;
+        Map.Entry<String, Integer> chunk = new AbstractMap.SimpleEntry<String, Integer>(fileId, chunkId);
+
+        if(this.backedUpChunks.containsKey(chunk)) {
+            boolean stillHasChunks = true;
+
+            while(stillHasChunks) {
+                this.backedUpChunks.get(chunk).deleteChunk(this.peerID);
+                this.backedUpChunks.remove(chunk);
+
+                chunkId++;
+                chunk = new AbstractMap.SimpleEntry<String, Integer>(fileId, chunkId);
+                if(!this.backedUpChunks.containsKey(chunk)) {
+                    stillHasChunks = false;
+                }
+            }
+        }
+
+        if(this.initiatedChunks.containsKey(chunk)){
+            this.initiatedChunks.remove(chunk);
+        }
+    }
+
     public static void main(String[] args) throws Exception {
         
         // example initiator peer: java project/service/Peer 1.0 1234 RemoteInterface "230.0.0.0 9876" "230.0.0.1 9877" "230.0.0.2 9878"
         // example peer: java project/service/Peer 1.0 444 RemoteInterface2 "230.0.0.0 9876" "230.0.0.1 9877" "230.0.0.2 9878"
-
+        // example peer: java project/service/Peer 1.0 555 RemoteInterface3 "230.0.0.0 9876" "230.0.0.1 9877" "230.0.0.2 9878"
         if(args.length != 6)
 		{
             System.out.println("Wrong number of arguments.\nUsage: java project/Peer <version> <serverID> <accessPoint> \"<MC_address> <MC_port>\" \"<MDB_address> <MDB_port>\" \"<MDR_address> <MDR_port>\"\r\n");
@@ -206,8 +232,17 @@ public class Peer implements RemoteInterface, Remote {
     }
     
     @Override
-    public void deleteOperation(ArrayList<String> info) {
+    public void deleteOperation(ArrayList<String> info) throws Exception {
+        if(info.size() != 1)
+        {
+            System.out.println("Wrong number of arguments for DELETE operation\n");
+			System.exit(-1);
+        }
+
+        System.out.println("Received the following request: \n - DELETE ");   
         
+        String path = info.get(0);
+        this.MCchannel.sendDelete("1");
     }
     
     @Override

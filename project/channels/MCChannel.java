@@ -23,6 +23,13 @@ public class MCChannel extends Channel implements Runnable{
 		this.socket.send(sendPacket);
     }
 
+    public void sendDelete(String fileId) throws IOException {
+        byte[] message = super.createHeader("DELETE", fileId).getBytes();
+
+        DatagramPacket sendPacket = new DatagramPacket(message, message.length, this.address, this.portNumber);
+		this.socket.send(sendPacket);
+    }
+
     @Override
     public void run() {
         
