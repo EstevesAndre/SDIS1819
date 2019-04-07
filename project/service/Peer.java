@@ -17,6 +17,7 @@ import project.channels.MDBChannel;
 import project.channels.MDRChannel;
 import project.database.Chunk;
 import project.database.FileManager;
+import project.database.InitiatedChunk;
 import project.rmi.RemoteInterface;
 import project.threads.SendPutChunk;
 
@@ -37,7 +38,7 @@ public class Peer implements RemoteInterface, Remote {
 
     private ArrayList<Chunk> backedUpChunks;
     private HashSet<Map.Entry<String,Integer>> backedUp;
-    private HashMap<Map.Entry<String,Integer>, Integer> initiatedChunks;
+    private HashMap<Map.Entry<String,Integer>, InitiatedChunk> initiatedChunks;
 
     private ThreadPoolExecutor executor;
 
@@ -55,7 +56,7 @@ public class Peer implements RemoteInterface, Remote {
 
         this.backedUp = new HashSet<Map.Entry<String,Integer>>();
         this.backedUpChunks = new ArrayList<Chunk>();
-        this.initiatedChunks = new HashMap<Map.Entry<String,Integer>, Integer>();
+        this.initiatedChunks = new HashMap<Map.Entry<String,Integer>, InitiatedChunk>();
 
         this.joinRMI();
     }
@@ -98,7 +99,6 @@ public class Peer implements RemoteInterface, Remote {
 
         // if peer is reading its own message
         if(Integer.parseInt(header[2]) == this.peerID) {
-            System.out.println("Reading my own message...\n");
             return;
         }
         
@@ -129,20 +129,32 @@ public class Peer implements RemoteInterface, Remote {
 
     public void receiveStored(String[] message) {
         
-        // verifies if is not the send message peer
-        if(Integer.parseInt(message[2]) == this.peerID)
+        // verifies if is not the same peer
+        int sender = Integer.parseInt(message[2]);
+        if(sender == this.peerID)
             return;
 
         String fileId = message[3];
         int chunkId = Integer.parseInt(message[4]);
-        
 
+        System.out.println("Received stored " + fileId + " " + chunkId);
+        
+        InitiatedChunk initiated = this.initiatedChunks.get(new AbstractMap.SimpleEntry<String, Integer>(fileId, chunkId));
+        if(initiated != null) {
+            initiated.addStorer(sender);
+        }
+
+        AbstractMap.SimpleEntry<String, Integer> chunkk = new AbstractMap.SimpleEntry<String, Integer>(fileId, chunkId);
+            
+        if(!this.backedUp.contains(chunkk)){
+
+        }
     }
 
     public static void main(String[] args) throws Exception {
         
-        // example: java project/service/Peer 1.0 1234 RemoteInterface "230.0.0.0 9876" "230.0.0.1 9877" "230.0.0.2 9878"
-        // 1 envia packet
+        // example initiator peer: java project/service/Peer 1.0 1234 RemoteInterface "230.0.0.0 9876" "230.0.0.1 9877" "230.0.0.2 9878"
+        // example peer: java project/service/Peer 1.0 444 RemoteInterface2 "230.0.0.0 9876" "230.0.0.1 9877" "230.0.0.2 9878"
 
         if(args.length != 6)
 		{
@@ -166,7 +178,7 @@ public class Peer implements RemoteInterface, Remote {
 			System.exit(-1);
         }
 
-        System.out.print("Received the following request: \n - BACKUP ");
+        System.out.println("Received the following request: \n - BACKUP ");
         
         String path = info.get(0);
         int rd = Integer.parseInt(info.get(1));
@@ -174,13 +186,21 @@ public class Peer implements RemoteInterface, Remote {
         String fileID = "1";
         
         for(int i = 0; i < chunks.size(); i++){
-            AbstractMap.SimpleEntry<String, Integer> initiatedChunk = new AbstractMap.SimpleEntry<String, Integer>(fileID, i);
-            this.initiatedChunks.put(initiatedChunk, 0);
+            InitiatedChunk initiatedChunk = new InitiatedChunk();
+            this.initiatedChunks.put(new AbstractMap.SimpleEntry<String, Integer>(fileID, i), initiatedChunk);
             this.executor.execute(new SendPutChunk(this.MDBchannel, fileID, chunks.get(i), rd));
             Thread.sleep(50);
         }
 
-        //System.out.println(this.executor.getActiveCount());
+        for(Map.Entry<String, Integer> key : this.initiatedChunks.keySet()){
+            InitiatedChunk initiated = this.initiatedChunks.get(key);
+            while(initiated.getObservedRD() < rd) {
+                this.executor.execute(new SendPutChunk(this.MDBchannel, fileID, chunks.get(key.getValue()), rd));
+                Thread.sleep(300);
+            }
+        }
+
+        System.out.println(this.executor.getActiveCount());
     }
 
     @Override
