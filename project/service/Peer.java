@@ -2,6 +2,11 @@ package project.service;
 
 import java.io.*;
 import java.net.*;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,6 +30,7 @@ import java.rmi.registry.Registry;
 import java.rmi.Remote;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.server.UnicastRemoteObject;
+import java.security.MessageDigest;
 
 public class Peer implements RemoteInterface, Remote {
 
@@ -205,8 +211,16 @@ public class Peer implements RemoteInterface, Remote {
         String path = info.get(0);
         int rd = Integer.parseInt(info.get(1));
         ArrayList<Chunk> chunks = FileManager.splitFile(path);
-        String fileID = "1";
-        
+        //String fileID = "1";
+
+        // generating file id with SHA-256
+        File file = new File(path);
+        Path p = Paths.get(file.getAbsolutePath());
+        BasicFileAttributes attr = Files.readAttributes(p, BasicFileAttributes.class);
+        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+        String toHash = file.getName() + attr.creationTime().toString() + attr.lastModifiedTime().toString();
+        String fileID = FileManager.bytesToHex(digest.digest(toHash.getBytes(StandardCharsets.UTF_8)));
+
         for(int i = 0; i < chunks.size(); i++){
             InitiatedChunk initiatedChunk = new InitiatedChunk();
             this.initiatedChunks.put(new AbstractMap.SimpleEntry<String, Integer>(fileID, i), initiatedChunk);
@@ -242,7 +256,20 @@ public class Peer implements RemoteInterface, Remote {
         System.out.println("Received the following request: \n - DELETE ");   
         
         String path = info.get(0);
-        this.MCchannel.sendDelete("1");
+
+        // generating file id with SHA-256
+        File file = new File(path);
+        Path p = Paths.get(file.getAbsolutePath());
+        BasicFileAttributes attr = Files.readAttributes(p, BasicFileAttributes.class);
+        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+        String toHash = file.getName() + attr.creationTime().toString() + attr.lastModifiedTime().toString();
+        String fileId = FileManager.bytesToHex(digest.digest(toHash.getBytes(StandardCharsets.UTF_8)));
+
+        System.out.println("File id: " + fileId);
+
+        
+
+        this.MCchannel.sendDelete(fileId);
     }
     
     @Override

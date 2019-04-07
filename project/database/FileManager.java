@@ -14,6 +14,8 @@ public class FileManager {
     private int rd;
     private int numberOfChunks;
 
+    private final static char[] hexArray = "0123456789ABCDEF".toCharArray();
+
     public FileManager(String id, String path, int rd) {
         this.id = id;
         this.path = path;
@@ -39,12 +41,6 @@ public class FileManager {
 
                 chunks.add(new Chunk(partCounter, buffer));
                 partCounter++;
-
-                //String filePartName = String.format("%s.%03d", fileName, partCounter++);
-                //File newFile = new File(file.getParent(), filePartName);
-                //try (FileOutputStream out = new FileOutputStream(newFile)) {
-                    //out.write(buffer, 0, bytesAmount);
-                //}
             }
         }
         catch(Exception e)
@@ -54,5 +50,15 @@ public class FileManager {
 
         return chunks;
     }
+ 
     
+    public static String bytesToHex(byte[] bytes) {
+        char[] hexChars = new char[bytes.length * 2];
+        for ( int j = 0; j < bytes.length; j++ ) {
+            int v = bytes[j] & 0xFF;
+            hexChars[j * 2] = hexArray[v >>> 4];
+            hexChars[j * 2 + 1] = hexArray[v & 0x0F];
+        }
+        return new String(hexChars);
+    }
 }
