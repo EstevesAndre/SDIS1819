@@ -159,21 +159,33 @@ public class Peer implements RemoteInterface, Remote {
 
     public void receiveDelete(String[] message) throws IOException {
         String fileId = message[3];
-
+        System.out.println(this.peerID);
         int chunkId = 0;
         Map.Entry<String, Integer> chunk = new AbstractMap.SimpleEntry<String, Integer>(fileId, chunkId);
-
-        if(this.backedUpChunks.containsKey(chunk)) {
-            boolean stillHasChunks = true;
-
-            while(stillHasChunks) {
-                this.backedUpChunks.get(chunk).deleteChunk(this.peerID);
-                this.backedUpChunks.remove(chunk);
-
-                chunkId++;
+        boolean check = true;
+       
+        for(int i = 0; i < 2; i++) { // checks if it doesnt have .000
+            if(i == 1 && check == true)
+            {
+                chunkId = 1;
                 chunk = new AbstractMap.SimpleEntry<String, Integer>(fileId, chunkId);
-                if(!this.backedUpChunks.containsKey(chunk)) {
-                    stillHasChunks = false;
+                System.out.println("second");
+            }
+
+            if(this.backedUpChunks.containsKey(chunk)) {
+                System.out.println("has");
+                boolean stillHasChunks = true;
+                check = false;
+                while(stillHasChunks) {
+                    this.backedUpChunks.get(chunk).deleteChunk(this.peerID);
+                    this.backedUpChunks.remove(chunk);
+
+                    chunkId++;
+                    System.out.println("has " + chunkId);
+                    chunk = new AbstractMap.SimpleEntry<String, Integer>(fileId, chunkId);
+                    if(!this.backedUpChunks.containsKey(chunk)) {
+                        stillHasChunks = false;
+                    }
                 }
             }
         }
@@ -189,6 +201,19 @@ public class Peer implements RemoteInterface, Remote {
             return ((init.getObservedRD() >= init.getDesiredRD()? true : false));
         }
         return false;
+    }
+
+    // generating file id with SHA-256
+    public String getFileHashID(String path) throws Exception {
+        File file = new File(path);
+        Path p = Paths.get(file.getAbsolutePath());
+        
+        BasicFileAttributes attr = Files.readAttributes(p, BasicFileAttributes.class);
+        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+
+        String toHash = file.getName() + attr.creationTime().toString() + attr.lastModifiedTime().toString();
+        return FileManager.bytesToHex(digest.digest(toHash.getBytes(StandardCharsets.UTF_8)));
+
     }
 
     public static void main(String[] args) throws Exception {
@@ -215,22 +240,16 @@ public class Peer implements RemoteInterface, Remote {
         if(info.size() != 2)
         {
             System.out.println("Wrong number of arguments for BACKUP operation\n");
-			System.exit(-1);
+			return;
         }
-
-        System.out.println("Received the following request: \n - BACKUP ");
         
         String path = info.get(0);
         int rd = Integer.parseInt(info.get(1));
         ArrayList<Chunk> chunks = FileManager.splitFile(path);
 
-        // generating file id with SHA-256
-        File file = new File(path);
-        Path p = Paths.get(file.getAbsolutePath());
-        BasicFileAttributes attr = Files.readAttributes(p, BasicFileAttributes.class);
-        MessageDigest digest = MessageDigest.getInstance("SHA-256");
-        String toHash = file.getName() + attr.creationTime().toString() + attr.lastModifiedTime().toString();
-        String fileID = FileManager.bytesToHex(digest.digest(toHash.getBytes(StandardCharsets.UTF_8)));
+        System.out.println("Received the following request: - BACKUP " + path + " rd - " + rd);
+
+        String fileID = getFileHashID(path);
 
         for(int i = 0; i < chunks.size(); i++){
             InitiatedChunk initiatedChunk = new InitiatedChunk(rd);
@@ -252,26 +271,17 @@ public class Peer implements RemoteInterface, Remote {
         if(info.size() != 1)
         {
             System.out.println("Wrong number of arguments for DELETE operation\n");
-			System.exit(-1);
+			return;
         }
-
-        System.out.println("Received the following request: \n - DELETE ");   
-        
+         
         String path = info.get(0);
 
-        // generating file id with SHA-256
-        File file = new File(path);
-        Path p = Paths.get(file.getAbsolutePath());
-        BasicFileAttributes attr = Files.readAttributes(p, BasicFileAttributes.class);
-        MessageDigest digest = MessageDigest.getInstance("SHA-256");
-        String toHash = file.getName() + attr.creationTime().toString() + attr.lastModifiedTime().toString();
-        String fileId = FileManager.bytesToHex(digest.digest(toHash.getBytes(StandardCharsets.UTF_8)));
+        System.out.println("Received the following request: - DELETE " + path);  
 
-        System.out.println("File id: " + fileId);
+        String fileID = getFileHashID(path);
+        System.out.println("File id: " + fileID);
 
-        
-
-        this.MCchannel.sendDelete(fileId);
+        this.MCchannel.sendDelete(fileID);
     }
     
     @Override

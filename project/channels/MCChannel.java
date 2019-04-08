@@ -48,7 +48,6 @@ public class MCChannel extends Channel implements Runnable{
                 DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
 
                 socket.receive(receivePacket);
-                
                 this.peer.getExec().execute(new ReceiveMessage(this.peer, receivePacket));
             }
         } catch (IOException e) {
