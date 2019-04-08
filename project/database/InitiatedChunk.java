@@ -4,10 +4,12 @@ import java.util.HashSet;
 
 public class InitiatedChunk {
     private int observedRD;
+    private int desiredRD;
     private HashSet<Integer> storers; // id's of the peers that backed up the chunk
     
 
-    public InitiatedChunk() {
+    public InitiatedChunk(int desiredRD) {
+        this.desiredRD = desiredRD;
         observedRD = 0;
         storers =  new HashSet<Integer>();
     }
@@ -20,6 +22,10 @@ public class InitiatedChunk {
 
     public int getObservedRD(){
         return observedRD;
+    }
+
+    public int getDesiredRD() {
+        return desiredRD;
     }
 
 }

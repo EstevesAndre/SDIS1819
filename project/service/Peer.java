@@ -14,7 +14,7 @@ import java.util.Map;
 import java.util.HashSet;
 import java.util.HashMap;
 import java.util.concurrent.ThreadPoolExecutor;
-
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 
 import project.channels.MCChannel;
@@ -42,8 +42,8 @@ public class Peer implements RemoteInterface, Remote {
     private MDBChannel MDBchannel;
     private MDRChannel MDRchannel;
 
-    private HashMap<Map.Entry<String,Integer>, Chunk> backedUpChunks;
-    private HashMap<Map.Entry<String,Integer>, InitiatedChunk> initiatedChunks;
+    private ConcurrentHashMap<Map.Entry<String,Integer>, Chunk> backedUpChunks;
+    private ConcurrentHashMap<Map.Entry<String,Integer>, InitiatedChunk> initiatedChunks;
 
     private ThreadPoolExecutor executor;
 
@@ -59,8 +59,8 @@ public class Peer implements RemoteInterface, Remote {
         this.MDBchannel = new MDBChannel(MDBAddr, this);
         this.MDRchannel = new MDRChannel(MDRAddr, this);
 
-        this.backedUpChunks = new HashMap<Map.Entry<String,Integer>, Chunk>();
-        this.initiatedChunks = new HashMap<Map.Entry<String,Integer>, InitiatedChunk>();
+        this.backedUpChunks = new ConcurrentHashMap<Map.Entry<String,Integer>, Chunk>();
+        this.initiatedChunks = new ConcurrentHashMap<Map.Entry<String,Integer>, InitiatedChunk>();
 
         this.joinRMI();
     }
@@ -72,7 +72,7 @@ public class Peer implements RemoteInterface, Remote {
 
             // Bind the remote object's stub in the registry
             Registry registry = LocateRegistry.getRegistry();
-            registry.bind(this.accessPoint, stub);
+            registry.rebind(this.accessPoint, stub);
 
 			System.out.println("\nPeer ready\n");
         } 
@@ -94,6 +94,10 @@ public class Peer implements RemoteInterface, Remote {
 
     public ThreadPoolExecutor getExec() {
         return this.executor;
+    }
+
+    public boolean hasInitiatedChunk(Map.Entry<String, Integer> chunk) {
+        return this.initiatedChunks.containsKey(chunk);
     }
 
     public void receivePutChunk(DatagramPacket receivePacket) throws IOException {
@@ -139,7 +143,7 @@ public class Peer implements RemoteInterface, Remote {
         String fileId = message[3];
         int chunkId = Integer.parseInt(message[4]);
 
-        System.out.println("Received stored " + fileId + " " + chunkId);
+        //System.out.println("Received stored " + fileId + " " + chunkId);
         
         InitiatedChunk initiated = this.initiatedChunks.get(new AbstractMap.SimpleEntry<String, Integer>(fileId, chunkId));
         if(initiated != null) {
@@ -179,6 +183,14 @@ public class Peer implements RemoteInterface, Remote {
         }
     }
 
+    public boolean verifyRDInitiated(Map.Entry<String, Integer> chunk) {
+        InitiatedChunk init = this.initiatedChunks.get(chunk);
+        if(init != null) {
+            return ((init.getObservedRD() >= init.getDesiredRD()? true : false));
+        }
+        return false;
+    }
+
     public static void main(String[] args) throws Exception {
         
         // example initiator peer: java project/service/Peer 1.0 1234 RemoteInterface "230.0.0.0 9876" "230.0.0.1 9877" "230.0.0.2 9878"
@@ -192,7 +204,7 @@ public class Peer implements RemoteInterface, Remote {
         }
 
         Peer peer = new Peer(args[0], args[1], args[2], args[3], args[4], args[5]);
-        peer.executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(30);
+        peer.executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(20);
         peer.executor.execute(peer.MDBchannel);
         peer.executor.execute(peer.MCchannel);
     }
@@ -211,7 +223,6 @@ public class Peer implements RemoteInterface, Remote {
         String path = info.get(0);
         int rd = Integer.parseInt(info.get(1));
         ArrayList<Chunk> chunks = FileManager.splitFile(path);
-        //String fileID = "1";
 
         // generating file id with SHA-256
         File file = new File(path);
@@ -222,21 +233,12 @@ public class Peer implements RemoteInterface, Remote {
         String fileID = FileManager.bytesToHex(digest.digest(toHash.getBytes(StandardCharsets.UTF_8)));
 
         for(int i = 0; i < chunks.size(); i++){
-            InitiatedChunk initiatedChunk = new InitiatedChunk();
+            InitiatedChunk initiatedChunk = new InitiatedChunk(rd);
             this.initiatedChunks.put(new AbstractMap.SimpleEntry<String, Integer>(fileID, i), initiatedChunk);
             this.executor.execute(new SendPutChunk(this.MDBchannel, fileID, chunks.get(i), rd));
             Thread.sleep(50);
         }
 
-        for(Map.Entry<String, Integer> key : this.initiatedChunks.keySet()){
-            InitiatedChunk initiated = this.initiatedChunks.get(key);
-            while(initiated.getObservedRD() < rd) {
-                this.executor.execute(new SendPutChunk(this.MDBchannel, fileID, chunks.get(key.getValue()), rd));
-                Thread.sleep(300);
-            }
-        }
-
-        System.out.println("Reached desired RD, finished backup operation.");
         //System.out.println(this.executor.getActiveCount());
     }
 

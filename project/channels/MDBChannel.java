@@ -9,7 +9,9 @@ import java.net.MulticastSocket;
 import java.util.concurrent.TimeUnit;
 import java.lang.Runnable;
 import java.util.regex.*;
+import java.util.AbstractMap;
 import java.util.Arrays;
+import java.util.Map;
 
 import project.database.Chunk;
 import project.service.Peer;
@@ -24,13 +26,35 @@ public class MDBChannel extends Channel implements Runnable{
     public void sendPutChunk(String fileID, Chunk chunk, int rd) throws IOException {
         byte[] header = super.createHeader("PUTCHUNK", fileID, chunk.getId(), rd).getBytes();
         byte[] chunkContent = chunk.getContent();
-        //System.out.println("sendPutChunk");
+      
         byte[] putChunk = new byte[header.length + chunkContent.length];
         System.arraycopy(header, 0, putChunk, 0, header.length);
         System.arraycopy(chunkContent, 0, putChunk, header.length, chunkContent.length);
         
-		DatagramPacket sendPacket = new DatagramPacket(putChunk, putChunk.length, this.address, this.portNumber);
-		this.socket.send(sendPacket);
+        DatagramPacket sendPacket = new DatagramPacket(putChunk, putChunk.length, this.address, this.portNumber);
+        MulticastSocket socket = new MulticastSocket(this.portNumber);
+        socket.joinGroup(this.address);
+        socket.send(sendPacket);
+    }
+
+    public void verifyRDinitiated(String fileID, Chunk chunk, int rd) throws Exception {
+        int attempts = 1;
+        int waitingTime = 1000;
+        Map.Entry<String, Integer> putchunk = new AbstractMap.SimpleEntry<String, Integer>(fileID, chunk.getId());
+
+        if(!this.peer.hasInitiatedChunk(putchunk)) {return;}
+
+        while(attempts < 5) {
+            Thread.sleep(waitingTime);
+            if(!this.peer.verifyRDInitiated(putchunk)){
+                sendPutChunk(fileID, chunk, rd);
+            }
+            else {
+                return;
+            }
+            waitingTime *= 2;
+            attempts++;
+        }
     }
 
     @Override
@@ -38,10 +62,13 @@ public class MDBChannel extends Channel implements Runnable{
         try {
             byte[] receiveData = new byte[66000];
             
+            MulticastSocket socket = new MulticastSocket(this.portNumber);
+            socket.joinGroup(this.address);
+            
             while(true) {
                 DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
 
-                this.socket.receive(receivePacket);
+                socket.receive(receivePacket);
 
                 this.peer.getExec().execute(new ReceiveMessage(this.peer, receivePacket));
                 

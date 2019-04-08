@@ -8,7 +8,6 @@ import project.service.Peer;
 public class Channel {
     protected InetAddress address;
     protected int portNumber;
-    protected MulticastSocket socket;
 
     protected short peerID;
     protected float version;
@@ -20,10 +19,6 @@ public class Channel {
 
         this.address = InetAddress.getByName(multicastHostName);
         this.portNumber = Integer.parseInt(mcastPort);
-
-        // Join multicast group
-        this.socket = new MulticastSocket(this.portNumber);
-        this.socket.joinGroup(this.address);
 
         this.peer = peer;
         this.peerID = peer.getID();

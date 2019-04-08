@@ -3,6 +3,7 @@ package project.channels;
 import java.io.IOException;
 import java.lang.Runnable;
 import java.net.DatagramPacket;
+import java.net.MulticastSocket;
 import java.util.concurrent.TimeUnit;
 import java.util.Arrays;
 
@@ -20,14 +21,18 @@ public class MCChannel extends Channel implements Runnable{
         byte[] message = super.createHeader("STORED", fileID, chunkNumber).getBytes();
         
         DatagramPacket sendPacket = new DatagramPacket(message, message.length, this.address, this.portNumber);
-		this.socket.send(sendPacket);
+        MulticastSocket socket = new MulticastSocket(this.portNumber);
+        socket.joinGroup(this.address);
+		socket.send(sendPacket);
     }
 
     public void sendDelete(String fileId) throws IOException {
         byte[] message = super.createHeader("DELETE", fileId).getBytes();
 
         DatagramPacket sendPacket = new DatagramPacket(message, message.length, this.address, this.portNumber);
-		this.socket.send(sendPacket);
+        MulticastSocket socket = new MulticastSocket(this.portNumber);
+        socket.joinGroup(this.address);
+		socket.send(sendPacket);
     }
 
     @Override
@@ -36,9 +41,13 @@ public class MCChannel extends Channel implements Runnable{
         try {
             byte[] receiveData = new byte[66000];
 
+            MulticastSocket socket = new MulticastSocket(this.portNumber);
+            socket.joinGroup(this.address);
+
             while(true) {
                 DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
-                this.socket.receive(receivePacket);
+
+                socket.receive(receivePacket);
                 
                 this.peer.getExec().execute(new ReceiveMessage(this.peer, receivePacket));
             }

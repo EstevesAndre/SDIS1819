@@ -24,7 +24,11 @@ public class SendPutChunk implements Runnable{
         try {
             System.out.println(" - " + this.chunk.getId());
             this.mdb.sendPutChunk(fileID, chunk, rd);
+            this.mdb.verifyRDinitiated(fileID, chunk, rd);
         } catch (IOException e) {
+            e.printStackTrace();
+        }
+        catch(Exception e){
             e.printStackTrace();
         }
     }
