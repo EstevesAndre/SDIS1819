@@ -27,5 +27,4 @@ public class InitiatedChunk {
     public int getDesiredRD() {
         return desiredRD;
     }
-
 }

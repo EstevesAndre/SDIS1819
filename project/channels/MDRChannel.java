@@ -11,24 +11,9 @@ import project.threads.ReceiveMessage;
 
 public class MDRChannel extends Channel implements Runnable{
 
-    private boolean listening;
 
     public MDRChannel(String MDRAddr, Peer peer) throws Exception{
         super(MDRAddr, peer);
-
-        listening = false;
-    }
-
-    public void startListening() {
-        listening = true;
-    }
-
-    public void stopListening() {
-        listening = false;
-    }
-
-    public boolean isListening() {
-        return listening;
     }
 
     public void sendChunk(String fileID, Chunk chunk) throws IOException {
@@ -42,7 +27,6 @@ public class MDRChannel extends Channel implements Runnable{
         MulticastSocket socket = new MulticastSocket(this.portNumber);
         socket.joinGroup(this.address);
         socket.send(sendPacket);
-        System.out.println("SendChunk");
     }
     
     @Override
@@ -54,12 +38,9 @@ public class MDRChannel extends Channel implements Runnable{
             socket.joinGroup(this.address);
             
             while(true) {
-                if(listening)
-                {
                     DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
                     socket.receive(receivePacket);
                     this.peer.getExec().execute(new ReceiveMessage(this.peer, receivePacket));
-                }
             }
         } catch (IOException e) {
             e.printStackTrace();

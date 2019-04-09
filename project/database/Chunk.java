@@ -19,6 +19,7 @@ public class Chunk {
     public Chunk(int id, byte[] content) {
         this.id = id;
         this.content = content;
+        this.size = content.length;
         this.observedRD = 0;
         storers =  new HashSet<Integer>();
     }
@@ -41,6 +42,10 @@ public class Chunk {
         try (FileOutputStream out = new FileOutputStream(newFile)) {
             out.write(this.content, 0, this.size);
         }
+    }
+
+    public int getSize() {
+        return size;
     }
 
     public byte[] getChunk(String fileID, int id) {

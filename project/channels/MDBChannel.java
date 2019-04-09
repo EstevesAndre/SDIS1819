@@ -67,11 +67,8 @@ public class MDBChannel extends Channel implements Runnable{
             
             while(true) {
                 DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
-
                 socket.receive(receivePacket);
-
                 this.peer.getExec().execute(new ReceiveMessage(this.peer, receivePacket));
-                
             }
         } catch (IOException e) {
             e.printStackTrace();

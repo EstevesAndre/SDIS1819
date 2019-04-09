@@ -42,7 +42,6 @@ public class ReceiveMessage implements Runnable{
                     this.peer.receiveGetChunk(received);
                 break;
                 case "CHUNK":
-                    System.out.println("HERE");
                     this.peer.receiveChunk(this.packet);
                 break;
             }

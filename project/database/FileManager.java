@@ -2,7 +2,15 @@ package project.database;
 
 import java.net.*;
 import java.util.ArrayList;
-import java.io.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.AbstractMap;
+import java.util.Map;
+
+import java.io.File;
+import java.io.BufferedInputStream;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.FileOutputStream;
 import project.database.Chunk;
 
 public class FileManager {
@@ -24,6 +32,7 @@ public class FileManager {
     public static ArrayList<Chunk> splitFile(String path) throws IOException {
         File file = new File(path);
 
+        System.out.println(path);
         int partCounter = 0;
         ArrayList<Chunk> chunks = new ArrayList<Chunk>();
 
@@ -37,7 +46,6 @@ public class FileManager {
 
             int bytesAmount = 0;
             while ((bytesAmount = bis.read(buffer)) > 0) {
-
                 chunks.add(new Chunk(partCounter, buffer));
                 partCounter++;
             }
@@ -50,6 +58,39 @@ public class FileManager {
         return chunks;
     }
  
+    public static void restoreFile(String peerID, String fileID, ConcurrentHashMap<Map.Entry<String,Integer>, byte[]> chunks) throws IOException {
+
+        String path = peerID + "/restored/file.txt";
+
+        File file = new File(path);
+        byte[] buffer;
+
+        try {
+            if(!file.exists())
+            {
+                file.getParentFile().mkdirs();
+                file.createNewFile();
+            }
+
+            FileOutputStream fos = new FileOutputStream(file, true);
+            
+            for(int chunkID = 0; chunkID < chunks.size(); chunkID++)
+            {
+                AbstractMap.SimpleEntry<String, Integer> chunk = new AbstractMap.SimpleEntry<String, Integer>(fileID, chunkID);
+                byte[] part = chunks.get(chunk);
+
+                buffer = new byte[(int) part.length];
+                fos.write(buffer);
+            }
+
+            fos.close();
+
+        } catch(Exception e)
+        {
+            e.printStackTrace();
+            System.err.println("Error while restoring File\n");
+        }
+    }
     
     public static String bytesToHex(byte[] bytes) {
         char[] hexChars = new char[bytes.length * 2];
