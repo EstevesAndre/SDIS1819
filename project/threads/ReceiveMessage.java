@@ -37,6 +37,14 @@ public class ReceiveMessage implements Runnable{
                     this.peer.receiveDelete(received);
                 default:
                 break;
+                case "GETCHUNK":
+                    Thread.sleep((long)(Math.random() * 1000)%400);
+                    this.peer.receiveGetChunk(received);
+                break;
+                case "CHUNK":
+                    System.out.println("HERE");
+                    this.peer.receiveChunk(this.packet);
+                break;
             }
         } catch (IOException e) {
             e.printStackTrace();

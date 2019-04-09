@@ -43,6 +43,13 @@ public class Chunk {
         }
     }
 
+    public byte[] getChunk(String fileID, int id) {
+        if(this.fileID.equals(fileID) && this.id == id)
+            return this.content;
+        
+        return null;
+    }
+
     public void deleteChunk(int peerID) throws IOException {
         File file = new File(peerID + "/backup/" + this.fileName);
 

@@ -9,12 +9,12 @@ public interface RemoteInterface extends Remote {
 
     public void backupOperation(ArrayList<String> arguments) throws Exception, RemoteException;
 
-    public void restoreOperation(ArrayList<String> arguments) throws RemoteException;
+    public void restoreOperation(ArrayList<String> arguments) throws Exception, RemoteException;
     
     public void deleteOperation(ArrayList<String> arguments) throws Exception, RemoteException;
     
-    public void reclaimOperation(ArrayList<String> arguments) throws RemoteException;
+    public void reclaimOperation(ArrayList<String> arguments) throws Exception, RemoteException;
 
-    public void stateOperation(ArrayList<String> arguments) throws RemoteException;
+    public void stateOperation(ArrayList<String> arguments) throws Exception, RemoteException;
 
 }

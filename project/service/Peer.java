@@ -24,7 +24,9 @@ import project.database.Chunk;
 import project.database.FileManager;
 import project.database.InitiatedChunk;
 import project.rmi.RemoteInterface;
+import project.threads.SendGetChunk;
 import project.threads.SendPutChunk;
+import project.threads.SendChunk;
 
 import java.rmi.registry.Registry;
 import java.rmi.Remote;
@@ -44,7 +46,7 @@ public class Peer implements RemoteInterface, Remote {
 
     private ConcurrentHashMap<Map.Entry<String,Integer>, Chunk> backedUpChunks;
     private ConcurrentHashMap<Map.Entry<String,Integer>, InitiatedChunk> initiatedChunks;
-
+    private ConcurrentHashMap<String,Integer> storedFiles;
     private ThreadPoolExecutor executor;
 
     public Peer(String version, String serverID, String accessPoint, String MCAddr, String MDBAddr, String MDRAddr) throws Exception {
@@ -59,6 +61,7 @@ public class Peer implements RemoteInterface, Remote {
         this.MDBchannel = new MDBChannel(MDBAddr, this);
         this.MDRchannel = new MDRChannel(MDRAddr, this);
 
+        this.storedFiles = new ConcurrentHashMap<String,Integer>();
         this.backedUpChunks = new ConcurrentHashMap<Map.Entry<String,Integer>, Chunk>();
         this.initiatedChunks = new ConcurrentHashMap<Map.Entry<String,Integer>, InitiatedChunk>();
 
@@ -100,6 +103,34 @@ public class Peer implements RemoteInterface, Remote {
         return this.initiatedChunks.containsKey(chunk);
     }
 
+    public void receiveGetChunk(String[] message) throws IOException {
+        // ex: GETCHUNK version senderID fileID chunkID
+
+        if(this.peerID == Integer.parseInt(message[2]))
+            return;
+
+        String fileID = message[3];
+        int chunkID = Integer.parseInt(message[4]);
+        
+        AbstractMap.SimpleEntry<String, Integer> key = new AbstractMap.SimpleEntry<String, Integer>(fileID, chunkID);
+            
+        if(this.backedUpChunks.containsKey(key))
+        {
+            Chunk chunk = this.backedUpChunks.get(key);
+            System.out.println("I have " + chunkID);
+
+            // PRECISA DE IR A MEMORIA E NAO À ESTRUTURA
+            this.executor.execute(new SendChunk(this.MDRchannel, fileID, chunk));
+        }
+    }
+
+    public void receiveChunk(DatagramPacket receivePacket) throws IOException {
+        String[] received = new String(receivePacket.getData(), 0, receivePacket.getLength()).split("\r\n\r\n");
+        String[] header = received[0].split("\\s+");
+
+        System.out.println("I RECEIVED SOMETHING");
+    }
+
     public void receivePutChunk(DatagramPacket receivePacket) throws IOException {
         
         String[] received = new String(receivePacket.getData(), 0, receivePacket.getLength()).split("\r\n\r\n");
@@ -129,19 +160,26 @@ public class Peer implements RemoteInterface, Remote {
 
         //}
         // error, no space available
-        
-
     }
 
     public void receiveStored(String[] message) {
         
-        // verifies if is not the same peer
+        int chunkId = Integer.parseInt(message[4]);
+        if(this.peerID == 1234)  System.out.println(chunkId);
         int sender = Integer.parseInt(message[2]);
+        String fileId = message[3];
+ 
+        if(!this.storedFiles.containsKey(fileId))
+            this.storedFiles.put(fileId, chunkId);
+        else if(this.storedFiles.get(fileId) < chunkId)
+        {
+            this.storedFiles.remove(fileId);
+            this.storedFiles.put(fileId, chunkId);
+        }
+        
+        // verifies if is not the same peer
         if(sender == this.peerID)
             return;
-
-        String fileId = message[3];
-        int chunkId = Integer.parseInt(message[4]);
 
         //System.out.println("Received stored " + fileId + " " + chunkId);
         
@@ -221,6 +259,7 @@ public class Peer implements RemoteInterface, Remote {
         // example initiator peer: java project/service/Peer 1.0 1234 RemoteInterface "230.0.0.0 9876" "230.0.0.1 9877" "230.0.0.2 9878"
         // example peer: java project/service/Peer 1.0 444 RemoteInterface2 "230.0.0.0 9876" "230.0.0.1 9877" "230.0.0.2 9878"
         // example peer: java project/service/Peer 1.0 555 RemoteInterface3 "230.0.0.0 9876" "230.0.0.1 9877" "230.0.0.2 9878"
+        // example peer: java project/service/Peer 1.0 666 RemoteInterface4 "230.0.0.0 9876" "230.0.0.1 9877" "230.0.0.2 9878"
         if(args.length != 6)
 		{
             System.out.println("Wrong number of arguments.\nUsage: java project/Peer <version> <serverID> <accessPoint> \"<MC_address> <MC_port>\" \"<MDB_address> <MDB_port>\" \"<MDR_address> <MDR_port>\"\r\n");
@@ -229,9 +268,10 @@ public class Peer implements RemoteInterface, Remote {
         }
 
         Peer peer = new Peer(args[0], args[1], args[2], args[3], args[4], args[5]);
-        peer.executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(20);
+        peer.executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(60);
         peer.executor.execute(peer.MDBchannel);
         peer.executor.execute(peer.MCchannel);
+        peer.executor.execute(peer.MDRchannel);
     }
 
     @Override
@@ -255,15 +295,35 @@ public class Peer implements RemoteInterface, Remote {
             InitiatedChunk initiatedChunk = new InitiatedChunk(rd);
             this.initiatedChunks.put(new AbstractMap.SimpleEntry<String, Integer>(fileID, i), initiatedChunk);
             this.executor.execute(new SendPutChunk(this.MDBchannel, fileID, chunks.get(i), rd));
-            Thread.sleep(50);
+            Thread.sleep(100);
         }
 
         //System.out.println(this.executor.getActiveCount());
     }
 
     @Override
-    public void restoreOperation(ArrayList<String> info) {
+    public void restoreOperation(ArrayList<String> info) throws Exception {
+        
+        if(info.size() != 1)
+        {
+            System.out.println("Wrong number of arguments for RESTORE operation\n");
+			return;
+        }
 
+        String fileID = getFileHashID(info.get(0));
+
+        if(!this.storedFiles.containsKey(fileID))
+            System.out.println("File not backed up");
+
+        int nChunks = this.storedFiles.get(fileID);
+        System.out.println("number of chunks = " + nChunks);
+        this.MDRchannel.startListening();
+        
+        for(int i = 0; i <= nChunks; i++) // chunks ids -> [0,nChunks];
+        {
+            this.executor.execute(new SendGetChunk(this.MCchannel, fileID, i));
+            Thread.sleep(150);
+        }
     }
     
     @Override

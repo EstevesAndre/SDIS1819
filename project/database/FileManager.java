@@ -12,7 +12,6 @@ public class FileManager {
     private String id;
     private String path;
     private int rd;
-    private int numberOfChunks;
 
     private final static char[] hexArray = "0123456789ABCDEF".toCharArray();
 
