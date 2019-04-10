@@ -24,6 +24,16 @@ public class Chunk {
         storers =  new HashSet<Integer>();
     }
 
+    public Chunk(String fileID, int id, byte[] content, int size) {
+        this.fileID = fileID;
+        this.id = id;
+        this.content = content;
+        this.size = size;
+        this.observedRD = 0;
+
+        storers =  new HashSet<Integer>();
+    }
+
     public Chunk(String fileID, int id, byte[] content, int size, int rd) {
         this.fileID = fileID;
         this.id = id;

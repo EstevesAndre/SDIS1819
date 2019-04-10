@@ -19,7 +19,6 @@ public class SendGetChunk implements Runnable{
     @Override
     public void run() {
         try {
-            System.out.println(" - Get " + this.fileID + "." + this.chunkID);
             this.mc.sendGetChunk(fileID, chunkID);
         } catch (IOException e) {
             e.printStackTrace();

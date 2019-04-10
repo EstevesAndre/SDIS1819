@@ -132,17 +132,16 @@ public class Peer implements RemoteInterface, Remote {
             
         if(this.backedUpChunks.containsKey(key))
         {
-            Chunk chunk = this.backedUpChunks.get(key);
-
             String fileName = String.format("%s.%03d", fileID, chunkID);
             File chunkFile = new File(this.peerID + "/backup/" + fileName);
             FileInputStream in = new FileInputStream(chunkFile);
 
             byte[] buffer = new byte[(int) chunkFile.length()];
             in.read(buffer);
-            System.out.println(chunkID + " " + buffer.length + " " + chunk.getSize());
             
-            //this.executor.execute(new SendChunk(this.MDRchannel, fileID, chunk));
+            Chunk chunk = new Chunk(fileID, chunkID, buffer, buffer.length);
+
+            this.executor.execute(new SendChunk(this.MDRchannel, fileID, chunk));
         }
     }
 
@@ -154,7 +153,6 @@ public class Peer implements RemoteInterface, Remote {
                 if(receivePacket[i] == 13)
                 {
                     splitIndex = i + 4;
-                    System.out.println("i found you " + splitIndex);
                     break;
                 }
             }
@@ -296,7 +294,11 @@ public class Peer implements RemoteInterface, Remote {
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
 
         String toHash = file.getName() + attr.creationTime().toString() + attr.lastModifiedTime().toString();
+        
         return FileManager.bytesToHex(digest.digest(toHash.getBytes(StandardCharsets.UTF_8)));
+    }
+
+    public String getFileName (String hash) throws Exception {
 
     }
 
@@ -362,7 +364,6 @@ public class Peer implements RemoteInterface, Remote {
             System.out.println("File not backed up");
 
         int nChunks = this.storedFiles.get(fileID);
-        System.out.println("number of chunks = " + nChunks);
         this.restoredFile = new ConcurrentHashMap<Map.Entry<String,Integer>, byte[]>();
         this.restoring = true;
         this.numberchunks = nChunks + 1;
