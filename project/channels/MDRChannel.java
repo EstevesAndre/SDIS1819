@@ -3,6 +3,7 @@ package project.channels;
 import java.io.IOException;
 import java.lang.Runnable;
 import java.net.DatagramPacket;
+import java.util.Arrays;
 import java.net.MulticastSocket;
 
 import project.service.Peer;
@@ -38,9 +39,11 @@ public class MDRChannel extends Channel implements Runnable{
             socket.joinGroup(this.address);
             
             while(true) {
-                    DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
-                    socket.receive(receivePacket);
-                    this.peer.getExec().execute(new ReceiveMessage(this.peer, receivePacket));
+                DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
+                socket.receive(receivePacket);
+                byte[] copy = Arrays.copyOf(receiveData, receivePacket.getLength());
+               
+                this.peer.getExec().execute(new ReceiveMessage(this.peer, copy));
             }
         } catch (IOException e) {
             e.printStackTrace();

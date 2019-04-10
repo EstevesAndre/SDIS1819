@@ -25,7 +25,6 @@ public class MDBChannel extends Channel implements Runnable{
 
     public void sendPutChunk(String fileID, Chunk chunk, int rd) throws IOException {
         byte[] header = super.createHeader("PUTCHUNK", fileID, chunk.getId(), rd).getBytes();
-
         byte[] putChunk = new byte[header.length + chunk.getSize()];
         System.arraycopy(header, 0, putChunk, 0, header.length);
         System.arraycopy(chunk.getContent(), 0, putChunk, header.length, chunk.getSize());
@@ -68,7 +67,8 @@ public class MDBChannel extends Channel implements Runnable{
             while(true) {
                 DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
                 socket.receive(receivePacket);
-                this.peer.getExec().execute(new ReceiveMessage(this.peer, receivePacket));
+                byte[] copy = Arrays.copyOf(receiveData, receivePacket.getLength());
+                this.peer.getExec().execute(new ReceiveMessage(this.peer, copy));
             }
         } catch (IOException e) {
             e.printStackTrace();

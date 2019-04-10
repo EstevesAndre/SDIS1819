@@ -140,18 +140,18 @@ public class Peer implements RemoteInterface, Remote {
 
             byte[] buffer = new byte[(int) chunkFile.length()];
             in.read(buffer);
-            System.out.println(chunkID + " " + buffer.length);
+            System.out.println(chunkID + " " + buffer.length + " " + chunk.getSize());
+            
             //this.executor.execute(new SendChunk(this.MDRchannel, fileID, chunk));
         }
     }
 
-    public void receiveChunk(DatagramPacket receivePacket) throws IOException {
+    public void receiveChunk(byte[] receivePacket) throws IOException {
         if(this.restoring)
         {
-            byte[] data = receivePacket.getData();
             int splitIndex = 0;
-            for(int i = 0; i < data.length; i++) {
-                if(data[i] == 13)
+            for(int i = 0; i < receivePacket.length; i++) {
+                if(receivePacket[i] == 13)
                 {
                     splitIndex = i + 4;
                     System.out.println("i found you " + splitIndex);
@@ -159,10 +159,9 @@ public class Peer implements RemoteInterface, Remote {
                 }
             }
 
-            byte[] chunkByte = Arrays.copyOfRange(data, splitIndex, receivePacket.getLength());
+            byte[] chunkByte = Arrays.copyOfRange(receivePacket, splitIndex, receivePacket.length);
 
-            String[] received = new String(receivePacket.getData(), 0, receivePacket.getLength()).split("\r\n\r\n");
-            String[] header = received[0].split("\\s+");
+            String[] header = new String(receivePacket, 0, receivePacket.length).split("\r\n\r\n")[0].split("\\s+");
 
             String fileID = header[3];
             Integer chunkID = Integer.parseInt(header[4]);
@@ -181,36 +180,34 @@ public class Peer implements RemoteInterface, Remote {
         }
     }
 
-    public void receivePutChunk(DatagramPacket receivePacket) throws IOException {
+    public void receivePutChunk(byte[] receivePacket) throws IOException {
         
-        byte[] data = receivePacket.getData();
         int splitIndex = 0;
-        for(int i = 0; i < data.length; i++) {
-            if(data[i] == 13)
+        for(int i = 0; i < receivePacket.length; i++) {
+            if(receivePacket[i] == 13)
             {
                 splitIndex = i + 4;
-                System.out.println("i found you " + splitIndex);
                 break;
             }
         }
 
-        byte[] chunkByte = Arrays.copyOfRange(data, splitIndex, receivePacket.getLength());
-
-        String[] received = new String(receivePacket.getData(), 0, receivePacket.getLength()).split("\r\n\r\n");
-        String[] header = received[0].split("\\s+");
+        byte[] chunkByte = Arrays.copyOfRange(receivePacket, splitIndex, receivePacket.length);
+        
+        String[] received = new String(receivePacket, 0, splitIndex).trim().split(" ");
+        System.out.println("receivePutChunk " + received[4] +" " + chunkByte.length);
 
         // if peer is reading its own message
-        if(Integer.parseInt(header[2]) == this.peerID) {
+        if(Integer.parseInt(received[2]) == this.peerID) {
             return;
         }
         
-        String fileID = header[3];
-        Integer chunkID = Integer.parseInt(header[4]);
-        System.out.println("receivePutChunk " + fileID + " " + chunkID);
+        String fileID = received[3];
+        Integer chunkID = Integer.parseInt(received[4]);
+        System.out.println("receivePutChunk " + chunkID + " " + chunkByte.length);
         
         if(this.spaceAvailable >= chunkByte.length)
         {
-            int rd = Integer.parseInt(header[5]);
+            int rd = Integer.parseInt(received[5]);
             AbstractMap.SimpleEntry<String, Integer> chunk = new AbstractMap.SimpleEntry<String, Integer>(fileID, chunkID);
             
             if(!this.backedUpChunks.containsKey(chunk)) {

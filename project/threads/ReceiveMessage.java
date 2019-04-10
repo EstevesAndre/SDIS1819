@@ -11,10 +11,10 @@ import project.service.Peer;
 
 public class ReceiveMessage implements Runnable{
 
-    private DatagramPacket packet;
+    private byte[] packet;
     private Peer peer;
 
-    public ReceiveMessage(Peer peer, DatagramPacket packet) {
+    public ReceiveMessage(Peer peer, byte[] packet) {
         this.peer = peer;
         this.packet = packet;
     }
@@ -22,8 +22,8 @@ public class ReceiveMessage implements Runnable{
     @Override
     public void run() {
         try {
-            String[] received = new String(this.packet.getData(), 0, this.packet.getLength()).trim().split("\\s+");
-
+            String[] received = new String(this.packet, 0, this.packet.length).trim().split("\r\n\r\n")[0].split(" ");
+            
             switch(received[0])
             {
                 case "STORED": //ex: STORED version(1.0) peerID(12) fileID chunkID RD
@@ -45,6 +45,7 @@ public class ReceiveMessage implements Runnable{
                     this.peer.receiveChunk(this.packet);
                 break;
             }
+            
         } catch (IOException e) {
             e.printStackTrace();
         } catch (InterruptedException e) {

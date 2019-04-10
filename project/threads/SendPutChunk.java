@@ -22,7 +22,7 @@ public class SendPutChunk implements Runnable{
     @Override
     public void run() {
         try {
-            System.out.println(" - " + this.chunk.getId());
+            System.out.println(" - " + this.chunk.getId() + " - " + this.chunk.getSize());
             this.mdb.sendPutChunk(fileID, chunk, rd);
             this.mdb.verifyRDinitiated(fileID, chunk, rd);
         } catch (IOException e) {

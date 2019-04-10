@@ -39,7 +39,7 @@ public class Chunk {
         this.fileName = String.format("%s.%03d", this.fileID, this.id);
         File newFile = new File(peerID + "/backup/" + this.fileName);
         newFile.getParentFile().mkdirs();
-        
+
         try (FileOutputStream out = new FileOutputStream(newFile)) {
             out.write(this.content, 0, this.size);
         }
