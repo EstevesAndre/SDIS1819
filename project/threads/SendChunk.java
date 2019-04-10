@@ -15,7 +15,6 @@ public class SendChunk implements Runnable {
         this.mdr = mdr;
         this.fileID = fileID;
         this.chunk = chunk;
-        System.out.println(chunk.getId());
     }
 
     @Override

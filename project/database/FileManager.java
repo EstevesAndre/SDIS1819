@@ -46,7 +46,7 @@ public class FileManager {
 
             int bytesAmount = 0;
             while ((bytesAmount = bis.read(buffer)) > 0) {
-                chunks.add(new Chunk(partCounter, buffer));
+                chunks.add(new Chunk(partCounter, buffer, bytesAmount));
                 partCounter++;
             }
         }
@@ -63,7 +63,6 @@ public class FileManager {
         String path = peerID + "/restored/file.txt";
 
         File file = new File(path);
-        byte[] buffer;
 
         try {
             if(!file.exists())
@@ -79,8 +78,7 @@ public class FileManager {
                 AbstractMap.SimpleEntry<String, Integer> chunk = new AbstractMap.SimpleEntry<String, Integer>(fileID, chunkID);
                 byte[] part = chunks.get(chunk);
 
-                buffer = new byte[(int) part.length];
-                fos.write(buffer);
+                fos.write(part);
             }
 
             fos.close();

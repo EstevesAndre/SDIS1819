@@ -25,13 +25,13 @@ public class MDBChannel extends Channel implements Runnable{
 
     public void sendPutChunk(String fileID, Chunk chunk, int rd) throws IOException {
         byte[] header = super.createHeader("PUTCHUNK", fileID, chunk.getId(), rd).getBytes();
-        byte[] chunkContent = chunk.getContent();
-      
-        byte[] putChunk = new byte[header.length + chunkContent.length];
+
+        byte[] putChunk = new byte[header.length + chunk.getSize()];
         System.arraycopy(header, 0, putChunk, 0, header.length);
-        System.arraycopy(chunkContent, 0, putChunk, header.length, chunkContent.length);
-        
+        System.arraycopy(chunk.getContent(), 0, putChunk, header.length, chunk.getSize());
+
         DatagramPacket sendPacket = new DatagramPacket(putChunk, putChunk.length, this.address, this.portNumber);
+
         MulticastSocket socket = new MulticastSocket(this.portNumber);
         socket.joinGroup(this.address);
         socket.send(sendPacket);

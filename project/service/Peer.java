@@ -9,6 +9,7 @@ import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.HashSet;
@@ -106,6 +107,10 @@ public class Peer implements RemoteInterface, Remote {
         return this.executor;
     }
 
+    public void incSpaceAvailable(int length) {
+        this.spaceAvailable += length;
+    }
+
     public void decSpaceAvailable(int length) {
         this.spaceAvailable -= length;
     }
@@ -128,16 +133,34 @@ public class Peer implements RemoteInterface, Remote {
         if(this.backedUpChunks.containsKey(key))
         {
             Chunk chunk = this.backedUpChunks.get(key);
-            System.out.println("I have " + chunkID);
 
-            // PRECISA DE IR A MEMORIA E NAO À ESTRUTURA
-            this.executor.execute(new SendChunk(this.MDRchannel, fileID, chunk));
+            String fileName = String.format("%s.%03d", fileID, chunkID);
+            File chunkFile = new File(this.peerID + "/backup/" + fileName);
+            FileInputStream in = new FileInputStream(chunkFile);
+
+            byte[] buffer = new byte[(int) chunkFile.length()];
+            in.read(buffer);
+            System.out.println(chunkID + " " + buffer.length);
+            //this.executor.execute(new SendChunk(this.MDRchannel, fileID, chunk));
         }
     }
 
     public void receiveChunk(DatagramPacket receivePacket) throws IOException {
         if(this.restoring)
         {
+            byte[] data = receivePacket.getData();
+            int splitIndex = 0;
+            for(int i = 0; i < data.length; i++) {
+                if(data[i] == 13)
+                {
+                    splitIndex = i + 4;
+                    System.out.println("i found you " + splitIndex);
+                    break;
+                }
+            }
+
+            byte[] chunkByte = Arrays.copyOfRange(data, splitIndex, receivePacket.getLength());
+
             String[] received = new String(receivePacket.getData(), 0, receivePacket.getLength()).split("\r\n\r\n");
             String[] header = received[0].split("\\s+");
 
@@ -147,7 +170,7 @@ public class Peer implements RemoteInterface, Remote {
             AbstractMap.SimpleEntry<String, Integer> key = new AbstractMap.SimpleEntry<String, Integer>(fileID, chunkID);
 
             if(!this.restoredFile.containsKey(key))
-                this.restoredFile.put(key, received[1].getBytes());
+                this.restoredFile.put(key, chunkByte);
             
             if(this.numberchunks == this.restoredFile.size())
             {
@@ -160,6 +183,19 @@ public class Peer implements RemoteInterface, Remote {
 
     public void receivePutChunk(DatagramPacket receivePacket) throws IOException {
         
+        byte[] data = receivePacket.getData();
+        int splitIndex = 0;
+        for(int i = 0; i < data.length; i++) {
+            if(data[i] == 13)
+            {
+                splitIndex = i + 4;
+                System.out.println("i found you " + splitIndex);
+                break;
+            }
+        }
+
+        byte[] chunkByte = Arrays.copyOfRange(data, splitIndex, receivePacket.getLength());
+
         String[] received = new String(receivePacket.getData(), 0, receivePacket.getLength()).split("\r\n\r\n");
         String[] header = received[0].split("\\s+");
 
@@ -172,13 +208,13 @@ public class Peer implements RemoteInterface, Remote {
         Integer chunkID = Integer.parseInt(header[4]);
         System.out.println("receivePutChunk " + fileID + " " + chunkID);
         
-        if(this.spaceAvailable >= received[1].getBytes().length)
+        if(this.spaceAvailable >= chunkByte.length)
         {
             int rd = Integer.parseInt(header[5]);
             AbstractMap.SimpleEntry<String, Integer> chunk = new AbstractMap.SimpleEntry<String, Integer>(fileID, chunkID);
             
             if(!this.backedUpChunks.containsKey(chunk)) {
-                Chunk newChunk = new Chunk(fileID, chunkID, received[1].getBytes(), rd);
+                Chunk newChunk = new Chunk(fileID, chunkID, chunkByte, chunkByte.length, rd);
                 this.backedUpChunks.put(chunk, newChunk);
                 this.decSpaceAvailable(newChunk.getSize());
                 newChunk.storeChunk(this.peerID);       
@@ -235,6 +271,7 @@ public class Peer implements RemoteInterface, Remote {
             chunk = new AbstractMap.SimpleEntry<String, Integer>(fileId, i);
             if(this.backedUpChunks.containsKey(chunk))
             {
+                this.incSpaceAvailable(this.backedUpChunks.get(chunk).getSize());
                 this.backedUpChunks.get(chunk).deleteChunk(this.peerID);
                 this.backedUpChunks.remove(chunk);  
             }
@@ -329,7 +366,6 @@ public class Peer implements RemoteInterface, Remote {
 
         int nChunks = this.storedFiles.get(fileID);
         System.out.println("number of chunks = " + nChunks);
-        this.MDRchannel.startListening();
         this.restoredFile = new ConcurrentHashMap<Map.Entry<String,Integer>, byte[]>();
         this.restoring = true;
         this.numberchunks = nChunks + 1;

@@ -16,21 +16,22 @@ public class Chunk {
 
     private HashSet<Integer> storers; // id's of the peers that backed up the chunk
 
-    public Chunk(int id, byte[] content) {
+    public Chunk(int id, byte[] content, int size) {
         this.id = id;
         this.content = content;
-        this.size = content.length;
+        this.size = size;
         this.observedRD = 0;
         storers =  new HashSet<Integer>();
     }
 
-    public Chunk(String fileID, int id, byte[] content, int rd) {
+    public Chunk(String fileID, int id, byte[] content, int size, int rd) {
         this.fileID = fileID;
         this.id = id;
         this.content = content;
-        this.size = content.length;
+        this.size = size;
         this.desiredRD = rd;
         this.observedRD = 0;
+
         storers =  new HashSet<Integer>();
     }
 
