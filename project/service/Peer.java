@@ -299,7 +299,7 @@ public class Peer implements RemoteInterface, Remote {
     }
 
     public String getFileName (String hash) throws Exception {
-
+        return "";
     }
 
     public static void main(String[] args) throws Exception {
@@ -334,7 +334,7 @@ public class Peer implements RemoteInterface, Remote {
         String path = info.get(0);
         int rd = Integer.parseInt(info.get(1));
         ArrayList<Chunk> chunks = FileManager.splitFile(path);
-
+        
         System.out.println("Received the following request: - BACKUP " + path + " rd - " + rd);
 
         String fileID = getFileHashID(path);

@@ -54,13 +54,13 @@ public class FileManager {
         {
             System.err.println("WARNING --> : File: \"" + path + "\" not found!\n");
         }
-
+        
         return chunks;
     }
  
     public static void restoreFile(String peerID, String fileID, ConcurrentHashMap<Map.Entry<String,Integer>, byte[]> chunks) throws IOException {
 
-        String path = peerID + "/restored/file.txt";
+        String path = peerID + "/restored/file.txt"; 
 
         File file = new File(path);
 

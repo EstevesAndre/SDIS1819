@@ -28,7 +28,7 @@ public class MDBChannel extends Channel implements Runnable{
         byte[] putChunk = new byte[header.length + chunk.getSize()];
         System.arraycopy(header, 0, putChunk, 0, header.length);
         System.arraycopy(chunk.getContent(), 0, putChunk, header.length, chunk.getSize());
-
+        
         DatagramPacket sendPacket = new DatagramPacket(putChunk, putChunk.length, this.address, this.portNumber);
 
         MulticastSocket socket = new MulticastSocket(this.portNumber);
@@ -68,6 +68,7 @@ public class MDBChannel extends Channel implements Runnable{
                 DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
                 socket.receive(receivePacket);
                 byte[] copy = Arrays.copyOf(receiveData, receivePacket.getLength());
+                
                 this.peer.getExec().execute(new ReceiveMessage(this.peer, copy));
             }
         } catch (IOException e) {
