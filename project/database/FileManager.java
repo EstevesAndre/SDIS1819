@@ -13,20 +13,38 @@ import java.io.IOException;
 import java.io.FileOutputStream;
 import project.database.Chunk;
 
-public class FileManager {
+public class FileManager implements java.io.Serializable {
 
     private static final int MAX_CHUNK_SIZE = 64000;
 
-    private String id;
+    private String fileID;
     private String path;
     private int rd;
+    private ArrayList<Chunk> chunks;
 
     private final static char[] hexArray = "0123456789ABCDEF".toCharArray();
 
-    public FileManager(String id, String path, int rd) {
-        this.id = id;
+    public FileManager(String fileID, String path, int rd) {
+        this.fileID = fileID;
         this.path = path;
         this.rd = rd;
+        this.chunks = new ArrayList<>();
+    }
+
+    public String getFileID() {
+        return this.fileID;
+    }
+   
+    public String getPath() {
+        return path;
+    }
+
+    public int getDRD() {
+        return rd;
+    }
+    
+    public ArrayList<Chunk> getChunks() {
+        return chunks;
     }
 
     public static ArrayList<Chunk> splitFile(String path) throws IOException {

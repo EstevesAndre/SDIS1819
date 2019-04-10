@@ -76,6 +76,10 @@ public class Chunk {
         return this.id;
     }
 
+    public String getFileId() {
+        return this.fileID;
+    }
+
     public byte[] getContent() {
         return this.content;
     }
