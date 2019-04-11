@@ -22,28 +22,39 @@ public class ReceiveMessage implements Runnable{
     @Override
     public void run() {
         try {
-            String[] received = new String(this.packet, 0, this.packet.length).trim().split("\r\n\r\n")[0].split(" ");
+            int splitIndex = 0;
+            for(int i = 0; i < this.packet.length; i++) {
+                if(this.packet[i] == 13 && this.packet[i+1] == 10 && this.packet[i+2] == 13 && this.packet[i+3] == 10){
+                    splitIndex = i + 4;
+                    break;
+                }
+            }
+
+            String[] received = new String(this.packet, 0, splitIndex).trim().split("\\s+");
             
             switch(received[0])
             {
                 case "STORED": //ex: STORED version(1.0) peerID(12) fileID chunkID RD
                     this.peer.receiveStored(received);
-                break;
+                    break;
                 case "PUTCHUNK":
                     Thread.sleep((long)(Math.random() * 1000)%400);
                     this.peer.receivePutChunk(this.packet);
-                break;
+                    break;
                 case "DELETE":
                     this.peer.receiveDelete(received);
-                default:
-                break;
+                    break;
                 case "GETCHUNK":
                     Thread.sleep((long)(Math.random() * 1000)%400);
                     this.peer.receiveGetChunk(received);
-                break;
+                    break;
                 case "CHUNK":
                     this.peer.receiveChunk(this.packet);
-                break;
+                    break;
+                case "REMOVED":
+                    break;
+                default:
+                    break;
             }
             
         } catch (IOException e) {

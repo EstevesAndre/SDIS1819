@@ -34,6 +34,7 @@ public class MDBChannel extends Channel implements Runnable{
         MulticastSocket socket = new MulticastSocket(this.portNumber);
         socket.joinGroup(this.address);
         socket.send(sendPacket);
+        socket.close();
     }
 
     public void verifyRDinitiated(String fileID, Chunk chunk, int rd) throws Exception {
