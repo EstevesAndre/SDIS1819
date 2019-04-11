@@ -14,7 +14,7 @@ public class Storage implements java.io.Serializable {
    
     private static final long serialVersionUID = 1L;
 
-    private int capacity;
+    private long capacity;
     private Peer peer;
     private ConcurrentHashMap<Map.Entry<String,Integer>, Chunk> storedChunks;
     private ArrayList<FileManager> storedFiles;
@@ -38,8 +38,12 @@ public class Storage implements java.io.Serializable {
         this.capacity -= length;
     }
 
-    public synchronized int getSpaceAvailable() {
+    public synchronized long getCapacity() {
         return this.capacity;
+    }
+
+    public synchronized void setCapacity(long capacity) {
+        this.capacity = capacity;
     }
 
     public ArrayList<FileManager> getStoredFiles() {

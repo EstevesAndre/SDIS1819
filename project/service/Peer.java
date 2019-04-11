@@ -283,6 +283,24 @@ public class Peer implements RemoteInterface, Remote {
         return false;
     }
 
+    public long getFolderSize(File dir) {
+        if(!dir.isDirectory()) {
+            return 0;
+        }
+
+        long size = 0;
+        for (File file : dir.listFiles()) {
+            if (file.isFile()) {
+                System.out.println(file.getName() + " " + file.length());
+                size += file.length();
+            }
+            else if(dir.isDirectory()){
+                size += getFolderSize(file);
+            }
+        }
+        return size;
+    }    
+
     // generating file id with SHA-256
     public String getFileHashID(String path) throws Exception {
         File file = new File(path);
@@ -296,7 +314,7 @@ public class Peer implements RemoteInterface, Remote {
         return FileManager.bytesToHex(digest.digest(toHash.getBytes(StandardCharsets.UTF_8)));
     }
 
-    public String getFileName (String hash) throws Exception {
+    public String getFileName (String hash) {
         return "";
     }
 
@@ -402,7 +420,14 @@ public class Peer implements RemoteInterface, Remote {
     
     @Override
     public void reclaimOperation(ArrayList<String> info) {
-        float diskSpacePermitted = Float.parseFloat(info.get(0));
+        long diskSpacePermitted = Long.parseLong(info.get(0));
+        this.storage.setCapacity(diskSpacePermitted);
+
+        File backup = new File("peer" + this.peerID + "/backup/");
+        long toFree = getFolderSize(backup) - diskSpacePermitted;
+        if(toFree < 0) {
+            return;
+        }
 
         if(diskSpacePermitted == 0) {
             ConcurrentHashMap<Map.Entry<String,Integer>, Chunk> stored = this.storage.getStoredChunks();
