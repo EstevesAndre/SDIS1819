@@ -34,13 +34,13 @@ public class Chunk {
         storers =  new HashSet<Integer>();
     }
 
-    public Chunk(String fileID, int id, byte[] content, int size, int rd) {
+    public Chunk(String fileID, int id, byte[] content, int size, int rd, int observedRD) {
         this.fileID = fileID;
         this.id = id;
         this.content = content;
         this.size = size;
         this.desiredRD = rd;
-        this.observedRD = 0;
+        this.observedRD = observedRD;
 
         storers =  new HashSet<Integer>();
     }
@@ -66,9 +66,22 @@ public class Chunk {
         return null;
     }
 
-    public void deleteChunk(int peerID) throws IOException {
-        File file = new File(peerID + "/backup/" + this.fileName);
+    public void setData(byte[] data) {
+        this.content = data;
+    }
 
+    public void eraseData() {
+        this.content = null;
+    }
+
+    public boolean isStored(int peerID) {
+        return this.storers.contains(peerID);
+    }
+
+    public void deleteChunk(int peerID) throws IOException {
+        this.observedRD--;
+        this.storers.remove(peerID);
+        File file = new File(peerID + "/backup/" + this.fileName);
         file.delete();
     }
 

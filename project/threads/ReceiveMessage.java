@@ -38,15 +38,15 @@ public class ReceiveMessage implements Runnable{
                     this.peer.receiveStored(received);
                     break;
                 case "PUTCHUNK":
-                    Thread.sleep((long)(Math.random() * 1000)%400);
                     this.peer.receivePutChunk(this.packet);
+                    Thread.sleep((long)(Math.random() * 1000)%400);
                     break;
                 case "DELETE":
                     this.peer.receiveDelete(received);
                     break;
                 case "GETCHUNK":
-                    Thread.sleep((long)(Math.random() * 1000)%400);
                     this.peer.receiveGetChunk(received);
+                    Thread.sleep((long)(Math.random() * 1000)%400);
                     break;
                 case "CHUNK":
                     this.peer.receiveChunk(this.packet);

@@ -55,6 +55,8 @@ public class TestApp {
     }
 
     private void invokeRequest() throws Exception {
+        String info = null;
+
         try {
             switch(this.operation) {
                 case "BACKUP":
@@ -70,7 +72,7 @@ public class TestApp {
                     this.RMIStub.reclaimOperation(this.operationArgs);
                 break;
                 case "STATE":
-                    this.RMIStub.stateOperation(this.operationArgs);
+                    info = this.RMIStub.stateOperation(this.operationArgs);
                 break;
                 default:
                     System.err.println("Wrong operation to make the request.\n" + 
@@ -94,5 +96,8 @@ public class TestApp {
         }
 
         System.out.println("Request sent!\r\n");
+        if(info != null) {
+            System.out.println("Response:\n\n" + info);
+        }
     }
 }

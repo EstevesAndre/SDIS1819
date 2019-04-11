@@ -15,6 +15,6 @@ public interface RemoteInterface extends Remote {
     
     public void reclaimOperation(ArrayList<String> arguments) throws Exception, RemoteException;
 
-    public void stateOperation(ArrayList<String> arguments) throws Exception, RemoteException;
+    public String stateOperation(ArrayList<String> arguments) throws Exception, RemoteException;
 
 }
