@@ -23,7 +23,8 @@ public class MCChannel extends Channel implements Runnable{
         DatagramPacket sendPacket = new DatagramPacket(message, message.length, this.address, this.portNumber);
         MulticastSocket socket = new MulticastSocket(this.portNumber);
         socket.joinGroup(this.address);
-		socket.send(sendPacket);
+        socket.send(sendPacket);
+        socket.close();
     }
 
     public void sendDelete(String fileID) throws IOException {
@@ -32,7 +33,8 @@ public class MCChannel extends Channel implements Runnable{
         DatagramPacket sendPacket = new DatagramPacket(message, message.length, this.address, this.portNumber);
         MulticastSocket socket = new MulticastSocket(this.portNumber);
         socket.joinGroup(this.address);
-		socket.send(sendPacket);
+        socket.send(sendPacket);
+        socket.close();
     }
 
     public void sendGetChunk(String fileID, int chunkNumber) throws IOException {
@@ -41,7 +43,18 @@ public class MCChannel extends Channel implements Runnable{
         DatagramPacket sendPacket = new DatagramPacket(message, message.length, this.address, this.portNumber);
         MulticastSocket socket = new MulticastSocket(this.portNumber);
         socket.joinGroup(this.address);
-		socket.send(sendPacket);
+        socket.send(sendPacket);
+        socket.close();
+    }
+
+    public void sendRemoved(String fileID, int chunkNumber) throws IOException {
+        byte[] message = super.createHeader("REMOVED", fileID, chunkNumber).getBytes();
+
+        DatagramPacket sendPacket = new DatagramPacket(message, message.length, this.address, this.portNumber);
+        MulticastSocket socket = new MulticastSocket(this.portNumber);
+        socket.joinGroup(this.address);
+        socket.send(sendPacket);
+        socket.close();
     }
 
     @Override

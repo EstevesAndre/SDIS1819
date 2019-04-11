@@ -186,7 +186,7 @@ public class Peer implements RemoteInterface, Remote {
         }
 
         byte[] chunkByte = Arrays.copyOfRange(receivePacket, splitIndex, receivePacket.length);
-        String[] received = new String(receivePacket, 0, splitIndex).trim().split(" ");
+        String[] received = new String(receivePacket, 0, splitIndex).trim().split("\\s+");
 
         // if peer is reading its own message
         if(Integer.parseInt(received[2]) == this.peerID) {
@@ -402,7 +402,16 @@ public class Peer implements RemoteInterface, Remote {
     
     @Override
     public void reclaimOperation(ArrayList<String> info) {
-        
+        float diskSpacePermitted = Float.parseFloat(info.get(0));
+
+        if(diskSpacePermitted == 0) {
+            ConcurrentHashMap<Map.Entry<String,Integer>, Chunk> stored = this.storage.getStoredChunks();
+            for (Map.Entry<Map.Entry<String, Integer>, Chunk> entry : stored.entrySet()) {
+                Map.Entry<String, Integer> key = entry.getKey();
+                Chunk chunk = entry.getValue();
+                
+            }
+        }
     }
 
     @Override
