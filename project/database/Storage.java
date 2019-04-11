@@ -14,9 +14,9 @@ public class Storage implements java.io.Serializable {
    
     private static final long serialVersionUID = 1L;
 
-    private int capacityAvailable;
-    private int maxCapacity;
-    private ConcurrentHashMap<Map.Entry<String,Integer>, Chunk> storedChunks;
+    private long capacityAvailable;
+    private long maxCapacity;
+    private ConcurrentHashMap<AbstractMap.SimpleEntry<String,Integer>, Chunk> storedChunks;
     private ArrayList<FileManager> storedFiles;
     private ConcurrentHashMap<String, byte[]> restoredChunks;
     private ConcurrentHashMap<String, Integer> reclaimedChunks;
@@ -24,25 +24,33 @@ public class Storage implements java.io.Serializable {
     public Storage() {
         maxCapacity = 1000000000;
         capacityAvailable = maxCapacity;
-        storedChunks = new ConcurrentHashMap<Map.Entry<String,Integer>, Chunk>();
+        storedChunks = new ConcurrentHashMap<AbstractMap.SimpleEntry<String,Integer>, Chunk>();
         storedFiles = new ArrayList<FileManager>();
         restoredChunks = new ConcurrentHashMap<String, byte[]>();
         reclaimedChunks = new ConcurrentHashMap<String, Integer>();
     }
 
-    public synchronized void incSpaceAvailable(int length) {
+    public synchronized void incSpaceAvailable(long length) {
         this.capacityAvailable += length;
     }
 
-    public synchronized void decSpaceAvailable(int length) {
+    public synchronized void decSpaceAvailable(long length) {
         this.capacityAvailable -= length;
     }
 
-    public synchronized int getSpaceAvailable() {
+    public synchronized long getSpaceAvailable() {
         return this.capacityAvailable;
     }
 
-    public synchronized int getMaxSpace() {
+    public synchronized void setSpaceAvailable(long spaceAvailable) {
+        this.capacityAvailable = spaceAvailable;
+    }
+
+    public synchronized void setMaxCapacity(long capacity) {
+        this.maxCapacity = capacity;
+    }
+
+    public synchronized long getMaxCapacity() {
         return this.maxCapacity;
     }
 
@@ -50,7 +58,7 @@ public class Storage implements java.io.Serializable {
         return this.storedFiles;
     }
 
-    public ConcurrentHashMap<Map.Entry<String,Integer>, Chunk> getStoredChunks() {
+    public ConcurrentHashMap<AbstractMap.SimpleEntry<String,Integer>, Chunk> getStoredChunks() {
         return this.storedChunks;
     }
 
@@ -71,8 +79,9 @@ public class Storage implements java.io.Serializable {
     public synchronized void deleteChunk(AbstractMap.SimpleEntry<String, Integer> key, int peerID) throws IOException {
         if(this.storedChunks.containsKey(key) && this.storedChunks.get(key).isStored(peerID))
         {
-                this.incSpaceAvailable(this.storedChunks.get(key).getSize());
-                this.storedChunks.get(key).deleteChunk(peerID);
+            System.out.println("caara");
+            this.incSpaceAvailable(this.storedChunks.get(key).getSize());
+            this.storedChunks.get(key).deleteChunk(peerID);
         }
     }
 

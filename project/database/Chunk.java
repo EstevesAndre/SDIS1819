@@ -85,7 +85,8 @@ public class Chunk implements java.io.Serializable {
     public void deleteChunk(int peerID) throws IOException {
         this.observedRD--;
         this.storers.remove(peerID);
-        this.fileName = String.format("chk%d", this.id);        
+        this.fileName = String.format("chk%d", this.id); 
+        System.out.println("HERE");       
         File file = new File("peer" + peerID + "/backup/" + this.fileID + "/" + this.fileName);
         file.delete();
     }

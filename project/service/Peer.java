@@ -28,6 +28,7 @@ import project.database.Storage;
 import project.rmi.RemoteInterface;
 import project.threads.SendGetChunk;
 import project.threads.SendPutChunk;
+import project.threads.SendRemoved;
 import project.threads.SendChunk;
 
 import java.rmi.registry.Registry;
@@ -136,7 +137,7 @@ public class Peer implements RemoteInterface, Remote {
             
             Chunk chunk = new Chunk(fileID, chunkID, buffer, buffer.length);
 
-            this.executor.execute(new SendChunk(this.MDRchannel, fileID, chunk));
+            this.executor.execute((Runnable) new SendChunk(this.MDRchannel, fileID, chunk));
         }
     }
 
@@ -184,14 +185,15 @@ public class Peer implements RemoteInterface, Remote {
             }
         }
 
+        byte[] chunkByte = Arrays.copyOfRange(receivePacket, splitIndex, receivePacket.length);
         String[] received = new String(receivePacket, 0, splitIndex).trim().split("\\s+");
 
         // if peer is reading its own message
         if(Integer.parseInt(received[2]) == this.peerID) {
             return;
         }
+        System.out.println("receivePutChunk " + received[4] + " " + chunkByte.length);
         
-        byte[] chunkByte = Arrays.copyOfRange(receivePacket, splitIndex, receivePacket.length);
         String fileID = received[3];
         Integer chunkID = Integer.parseInt(received[4]);
         System.out.println("receivePutChunk " + chunkID + " " + chunkByte.length);
@@ -201,8 +203,7 @@ public class Peer implements RemoteInterface, Remote {
             int rd = Integer.parseInt(received[5]);
             AbstractMap.SimpleEntry<String, Integer> key = new AbstractMap.SimpleEntry<String, Integer>(fileID, chunkID);
             
-            Chunk chunk = new Chunk(fileID, chunkID, chunkByte, chunkByte.length, rd, 1);
-
+            Chunk chunk = new Chunk(fileID, chunkID, chunkByte, chunkByte.length, rd, 0);
             if(this.storage.storeChunk(key, chunk)) {
                 this.storage.decSpaceAvailable(chunk.getSize());
                 chunk.storeChunk(peerID);
@@ -232,12 +233,11 @@ public class Peer implements RemoteInterface, Remote {
         if(this.storage.containsChunk(key)) {
             this.storage.getStoredChunks().get(key).addStorer(sender);
         }
-            
-        //InitiatedChunk initiated = this.initiatedChunks.get(new AbstractMap.SimpleEntry<String, Integer>(fileId, chunkId));
-        //if(initiated != null) {
-        //    initiated.addStorer(sender);
-        //}            
-        
+
+        InitiatedChunk initiated = this.initiatedChunks.get(new AbstractMap.SimpleEntry<String, Integer>(fileID, chunkID));
+        if(initiated != null) {
+            initiated.addStorer(sender);
+        }
     }
 
     public void receiveDelete(String[] message) throws IOException {
@@ -255,6 +255,14 @@ public class Peer implements RemoteInterface, Remote {
         }
     }
 
+    public void receiveRemoved(String[] message) {
+        if(Integer.parseInt(message[2]) == this.peerID) {
+            return;
+        }
+
+        System.out.println("Received removed " + message[3] + message[4]);
+    }
+
     public boolean verifyRDInitiated(Map.Entry<String, Integer> chunk) {
         InitiatedChunk init = this.initiatedChunks.get(chunk);
         if(init != null) {
@@ -262,6 +270,24 @@ public class Peer implements RemoteInterface, Remote {
         }
         return false;
     }
+
+    public long getFolderSize(File dir) {
+        if(!dir.isDirectory()) {
+            return 0;
+        }
+
+        long size = 0;
+        for (File file : dir.listFiles()) {
+            if (file.isFile()) {
+                System.out.println(file.getName() + " " + file.length());
+                size += file.length();
+            }
+            else if(dir.isDirectory()){
+                size += getFolderSize(file);
+            }
+        }
+        return size;
+    }    
 
     // generating file id with SHA-256
     public String getFileHashID(String path) throws Exception {
@@ -330,11 +356,11 @@ public class Peer implements RemoteInterface, Remote {
 
     @Override
     public void backupOperation(ArrayList<String> info) throws Exception {
-
+    
         if(info.size() != 2)
         {
             System.out.println("Wrong number of arguments for BACKUP operation\n");
-			return;
+            return;
         }
         
         String path = info.get(0);
@@ -344,9 +370,9 @@ public class Peer implements RemoteInterface, Remote {
         
         ArrayList<Chunk> chunks = FileManager.splitFile(path);
         this.storage.addFileManager(new FileManager(fileID, path, rd, chunks.size()));
-
+    
         for(int i = 0; i < chunks.size(); i++){
-
+    
             AbstractMap.SimpleEntry<String, Integer> key = new AbstractMap.SimpleEntry<String, Integer>(fileID, chunks.get(i).getId());
             this.storage.storeChunk(key, chunks.get(i));
             Peer.savesInfoStorage(this, this.storage);
@@ -356,7 +382,7 @@ public class Peer implements RemoteInterface, Remote {
             Thread.sleep(100);
         }
     }
-
+    
     @Override
     public void restoreOperation(ArrayList<String> info) throws Exception {
         
@@ -408,17 +434,28 @@ public class Peer implements RemoteInterface, Remote {
     }
     
     @Override
-    public void reclaimOperation(ArrayList<String> info) {
-        float diskSpacePermitted = Float.parseFloat(info.get(0));
+    public void reclaimOperation(ArrayList<String> info) throws Exception {
+        long diskSpacePermitted = Long.parseLong(info.get(0));
+        this.storage.setMaxCapacity(diskSpacePermitted);
 
-        if(diskSpacePermitted == 0) {
-            ConcurrentHashMap<Map.Entry<String,Integer>, Chunk> stored = this.storage.getStoredChunks();
-            for (Map.Entry<Map.Entry<String, Integer>, Chunk> entry : stored.entrySet()) {
-                Map.Entry<String, Integer> key = entry.getKey();
-                Chunk chunk = entry.getValue();
-                
+        File backup = new File("peer" + this.peerID + "/backup/");
+        long folderSize = getFolderSize(backup);
+        this.storage.setSpaceAvailable(diskSpacePermitted - folderSize);
+
+        if(this.storage.getSpaceAvailable() > 0){
+            return;
+        }
+
+        for (Map.Entry<AbstractMap.SimpleEntry<String, Integer>, Chunk> entry : this.storage.getStoredChunks().entrySet()) {
+            AbstractMap.SimpleEntry<String, Integer> key = entry.getKey();
+            Chunk chunk = entry.getValue();
+            this.storage.deleteChunk(key, this.peerID);
+            this.executor.execute(new SendRemoved(this.MCchannel, key.getKey(), key.getValue()));
+            if(this.storage.getSpaceAvailable() > 0){
+                return;
             }
         }
+
     }
 
     @Override
@@ -466,7 +503,7 @@ public class Peer implements RemoteInterface, Remote {
         
         information += " Storage:\n" +
                     "  - Capacity available: " + this.storage.getSpaceAvailable() + "\n" + 
-                    "  - Maximum capacity: " + this.storage.getMaxSpace() + "\n";
+                    "  - Maximum capacity: " + this.storage.getMaxCapacity() + "\n";
 
         information += "------------------------------------------------------\n";
 

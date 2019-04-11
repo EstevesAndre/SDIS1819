@@ -52,6 +52,7 @@ public class ReceiveMessage implements Runnable{
                     this.peer.receiveChunk(this.packet);
                     break;
                 case "REMOVED":
+                    this.peer.receiveRemoved(received);
                     break;
                 default:
                     break;
