@@ -402,7 +402,7 @@ public class Peer implements RemoteInterface, Remote {
 
         information += "------------------------------------------------------\n";
 
-        information += " For each file whose backup it has initiated:\n";
+        information += "\n For each file whose backup it has initiated:\n";
         
         if(this.storage.getStoredFiles().size() == 0) information += "No files backed up\n";
 
@@ -413,22 +413,24 @@ public class Peer implements RemoteInterface, Remote {
             information += " - For each chunk of the file:\n";
 
             for(Map.Entry<String, Integer> key : this.storage.getStoredChunks().keySet()) {
-                if(key.getKey().equals(fileID)) {
+                if(key.getKey().equals(this.storage.getStoredFiles().get(i).getFileID())) {
                     System.out.println("   - Its id: " + key.getValue() + "\n");
                     System.out.println("   - Its perceived replication degree: " + 
                         this.storage.getStoredChunks().get(
-                            new AbstractMap.SimpleEntry<String, Integer>(fileID, key.getValue())).getObservedRD()
+                            new AbstractMap.SimpleEntry<String, Integer>(this.storage.getStoredFiles().get(i).getFileID(), key.getValue())).getObservedRD()
                         + "\n");
                 }
             }
         }
 
-        information += " For each chunk it stores:\n";
+        information += "\n For each chunk it stores:\n";
         if(this.storage.getStoredChunks().size() == 0) information += "No chunks backed up\n";
         
         for(int i = 0; i < this.storage.getStoredChunks().size(); i++) {
             
         }
+        information += "------------------------------------------------------\n";
+
 
         return information;
     }
