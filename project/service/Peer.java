@@ -137,7 +137,7 @@ public class Peer implements RemoteInterface, Remote {
             
             Chunk chunk = new Chunk(fileID, chunkID, buffer, buffer.length);
 
-            this.executor.execute(new SendChunk(this.MDRchannel, fileID, chunk));
+            this.executor.execute((Runnable) new SendChunk(this.MDRchannel, fileID, chunk));
         }
     }
 
@@ -437,6 +437,7 @@ public class Peer implements RemoteInterface, Remote {
                 
             }
         }
+        
     }
 
     @Override

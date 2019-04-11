@@ -20,15 +20,14 @@ public class FileManager implements java.io.Serializable {
     private String fileID;
     private String path;
     private int rd;
-    private ArrayList<Chunk> chunks;
-
+    private int chunkNr;
     private final static char[] hexArray = "0123456789ABCDEF".toCharArray();
 
-    public FileManager(String fileID, String path, int rd) {
+    public FileManager(String fileID, String path, int rd, int chunkNr) {
         this.fileID = fileID;
         this.path = path;
         this.rd = rd;
-        this.chunks = new ArrayList<>();
+        this.chunkNr = chunkNr;
     }
 
     public String getFileID() {
@@ -42,11 +41,11 @@ public class FileManager implements java.io.Serializable {
     public int getDRD() {
         return rd;
     }
-    
-    public ArrayList<Chunk> getChunks() {
-        return chunks;
-    }
 
+    public int getChunkNr() {
+        return chunkNr;
+    }
+    
     public static ArrayList<Chunk> splitFile(String path) throws IOException {
         File file = new File(path);
 
