@@ -4,7 +4,10 @@ import java.net.*;
 import java.util.HashSet;
 import java.io.*;
 
-public class Chunk {
+public class Chunk implements java.io.Serializable {
+
+    private static final long serialVersionUID = 1L;
+
     private int id;
     private String fileID;
     private String fileName;
@@ -48,7 +51,7 @@ public class Chunk {
     public void storeChunk(int peerID) throws IOException {
         // this.fileName = String.format("%s.%03d", this.fileID, this.id);
         this.fileName = String.format("chk%d", this.id);
-        File newFile = new File("peer" + peerID + "/backup/" + "/" + this.fileID + "/" + this.fileName);
+        File newFile = new File("peer" + peerID + "/backup/" + this.fileID + "/" + this.fileName);
         newFile.getParentFile().mkdirs();
 
         try (FileOutputStream out = new FileOutputStream(newFile)) {
@@ -82,7 +85,8 @@ public class Chunk {
     public void deleteChunk(int peerID) throws IOException {
         this.observedRD--;
         this.storers.remove(peerID);
-        File file = new File(peerID + "/backup/" + this.fileName);
+        this.fileName = String.format("chk%d", this.id);        
+        File file = new File("peer" + peerID + "/backup/" + this.fileID + "/" + this.fileName);
         file.delete();
     }
 

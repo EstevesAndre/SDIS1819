@@ -15,6 +15,8 @@ import project.database.Chunk;
 
 public class FileManager implements java.io.Serializable {
 
+    private static final long serialVersionUID = 1L;
+
     private static final int MAX_CHUNK_SIZE = 64000;
 
     private String fileID;

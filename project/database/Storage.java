@@ -21,7 +21,7 @@ public class Storage implements java.io.Serializable {
     private ConcurrentHashMap<String, byte[]> restoredChunks;
     private ConcurrentHashMap<String, Integer> reclaimedChunks;
 
-    public Storage(Peer peer) {
+    public Storage() {
         maxCapacity = 1000000000;
         capacityAvailable = maxCapacity;
         storedChunks = new ConcurrentHashMap<Map.Entry<String,Integer>, Chunk>();
@@ -40,6 +40,10 @@ public class Storage implements java.io.Serializable {
 
     public synchronized int getSpaceAvailable() {
         return this.capacityAvailable;
+    }
+
+    public synchronized int getMaxSpace() {
+        return this.maxCapacity;
     }
 
     public ArrayList<FileManager> getStoredFiles() {

@@ -83,6 +83,7 @@ public class TestApp {
                             + "\n- RECLAIM"
                             + "\n- STATE"
                             + ".\r\n");
+                    return;
             }
         }
         catch (java.rmi.RemoteException e) {

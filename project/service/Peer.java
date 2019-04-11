@@ -68,8 +68,6 @@ public class Peer implements RemoteInterface, Remote {
         this.MCchannel = new MCChannel(MCAddr, this);
         this.MDBchannel = new MDBChannel(MDBAddr, this);
         this.MDRchannel = new MDRChannel(MDRAddr, this);
-
-        this.storage = new Storage(this);
         
         this.storedFiles = new ConcurrentHashMap<String,Integer>();
         this.backedUpChunks = new ConcurrentHashMap<Map.Entry<String,Integer>, Chunk>();
@@ -128,8 +126,9 @@ public class Peer implements RemoteInterface, Remote {
         
         if(this.storage.containsChunk(key))
         {
-            String fileName = String.format("%s.%03d", fileID, chunkID);
-            File chunkFile = new File(this.peerID + "/backup/" + fileName);
+            String fileName = String.format("chk%d", chunkID);        
+            File chunkFile = new File("peer" + this.peerID + "/backup/" + fileID + "/" + fileName);
+
             FileInputStream in = new FileInputStream(chunkFile);
 
             byte[] buffer = new byte[(int) chunkFile.length()];
@@ -277,6 +276,26 @@ public class Peer implements RemoteInterface, Remote {
         return FileManager.bytesToHex(digest.digest(toHash.getBytes(StandardCharsets.UTF_8)));
     }
 
+    public static void savesInfoStorage(Peer peer, Storage store) {
+        try {
+            File storageFile = new File(peer.getID() + "/storage.ser");
+            
+            if (!storageFile.exists()) {
+                storageFile.getParentFile().mkdirs();
+                storageFile.createNewFile();
+            }
+
+            FileOutputStream outFile = new FileOutputStream(peer.getID() + "/storage.ser");
+            ObjectOutputStream output = new ObjectOutputStream(outFile);
+            output.writeObject(store);
+            output.close();
+            outFile.close();
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     public static void main(String[] args) throws Exception {
         
         // example initiator peer: java project/service/Peer 1.0 1234 RemoteInterface "230.0.0.0 9876" "230.0.0.1 9877" "230.0.0.2 9878"
@@ -291,6 +310,18 @@ public class Peer implements RemoteInterface, Remote {
         }
 
         Peer peer = new Peer(args[0], args[1], args[2], args[3], args[4], args[5]);
+        
+        try {   
+            FileInputStream fis = new FileInputStream(peer.peerID + "/storage.ser");
+            ObjectInputStream input = new ObjectInputStream(fis);
+            peer.storage = (Storage) input.readObject();
+            input.close();
+            fis.close();
+        }
+        catch (Exception e) {
+            peer.storage = new Storage();
+        }
+
         peer.executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(200);
         peer.executor.execute(peer.MDBchannel);
         peer.executor.execute(peer.MCchannel);
@@ -318,7 +349,7 @@ public class Peer implements RemoteInterface, Remote {
 
             AbstractMap.SimpleEntry<String, Integer> key = new AbstractMap.SimpleEntry<String, Integer>(fileID, chunks.get(i).getId());
             this.storage.storeChunk(key, chunks.get(i));
-
+            Peer.savesInfoStorage(this, this.storage);
             //InitiatedChunk initiatedChunk = new InitiatedChunk(rd);
             //this.initiatedChunks.put(new AbstractMap.SimpleEntry<String, Integer>(fileID, i), initiatedChunk);
             this.executor.execute(new SendPutChunk(this.MDBchannel, fileID, chunks.get(i), rd));
@@ -402,35 +433,42 @@ public class Peer implements RemoteInterface, Remote {
 
         information += "------------------------------------------------------\n";
 
-        information += "\n For each file whose backup it has initiated:\n";
+        information += " For each file whose backup it has initiated:\n";
         
-        if(this.storage.getStoredFiles().size() == 0) information += "No files backed up\n";
+        if(this.storage.getStoredFiles().size() == 0) information += " - No files backed up\n";
 
         for(int i = 0; i < this.storage.getStoredFiles().size(); i++) {
-            information += " - The file pathname: " + this.storage.getStoredFiles().get(i).getPath() + "\n";
-            information += " - The backup service id of the file: " + this.storage.getStoredFiles().get(i).getFileID() + "\n";
-            information += " - The desired replication degree: " + this.storage.getStoredFiles().get(i).getDRD() + "\n";
-            information += " - For each chunk of the file:\n";
+            information += "  - The file pathname: " + this.storage.getStoredFiles().get(i).getPath() + "\n";
+            information += "  - The backup service id of the file: " + this.storage.getStoredFiles().get(i).getFileID() + "\n";
+            information += "  - The desired replication degree: " + this.storage.getStoredFiles().get(i).getDRD() + "\n";
+            information += "  - For each chunk of the file:\n";
 
             for(Map.Entry<String, Integer> key : this.storage.getStoredChunks().keySet()) {
                 if(key.getKey().equals(this.storage.getStoredFiles().get(i).getFileID())) {
-                    System.out.println("   - Its id: " + key.getValue() + "\n");
-                    System.out.println("   - Its perceived replication degree: " + 
+                    information += "    - Its id: " + key.getValue() + "\n";
+                    information += "   - Its perceived replication degree: " + 
                         this.storage.getStoredChunks().get(
                             new AbstractMap.SimpleEntry<String, Integer>(this.storage.getStoredFiles().get(i).getFileID(), key.getValue())).getObservedRD()
-                        + "\n");
+                        + "\n";
                 }
             }
         }
 
         information += "\n For each chunk it stores:\n";
-        if(this.storage.getStoredChunks().size() == 0) information += "No chunks backed up\n";
+        if(this.storage.getStoredChunks().size() == 0) information += "  - No chunks backed up\n";
         
-        for(int i = 0; i < this.storage.getStoredChunks().size(); i++) {
-            
+        for(Map.Entry<String, Integer> key : this.storage.getStoredChunks().keySet()) {
+            Chunk aux = this.storage.getStoredChunks().get(new AbstractMap.SimpleEntry<String, Integer>(key.getKey(), key.getValue()));
+            information += "    - Its id: " + aux.getId() + "\n";
+            information += "    - Its size: " + aux.getSize() / 1000 + "\n";
+            information += "    - Its perceived replication degree: " + aux.getObservedRD() + "\n";
         }
-        information += "------------------------------------------------------\n";
+        
+        information += " Storage:\n" +
+                    "  - Capacity available: " + this.storage.getSpaceAvailable() + "\n" + 
+                    "  - Maximum capacity: " + this.storage.getMaxSpace() + "\n";
 
+        information += "------------------------------------------------------\n";
 
         return information;
     }
