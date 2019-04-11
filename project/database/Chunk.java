@@ -46,8 +46,9 @@ public class Chunk {
     }
 
     public void storeChunk(int peerID) throws IOException {
-        this.fileName = String.format("%s.%03d", this.fileID, this.id);
-        File newFile = new File(peerID + "/backup/" + this.fileName);
+        // this.fileName = String.format("%s.%03d", this.fileID, this.id);
+        this.fileName = String.format("chk%d", this.id);
+        File newFile = new File("peer" + peerID + "/backup/" + "/" + this.fileID + "/" + this.fileName);
         newFile.getParentFile().mkdirs();
 
         try (FileOutputStream out = new FileOutputStream(newFile)) {
