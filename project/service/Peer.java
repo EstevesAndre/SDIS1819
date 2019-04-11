@@ -28,6 +28,7 @@ import project.database.Storage;
 import project.rmi.RemoteInterface;
 import project.threads.SendGetChunk;
 import project.threads.SendPutChunk;
+import project.threads.SendRemoved;
 import project.threads.SendChunk;
 
 import java.rmi.registry.Registry;
@@ -203,8 +204,7 @@ public class Peer implements RemoteInterface, Remote {
             int rd = Integer.parseInt(received[5]);
             AbstractMap.SimpleEntry<String, Integer> key = new AbstractMap.SimpleEntry<String, Integer>(fileID, chunkID);
             
-            Chunk chunk = new Chunk(fileID, chunkID, chunkByte, chunkByte.length, rd);
-
+            Chunk chunk = new Chunk(fileID, chunkID, chunkByte, chunkByte.length, rd, 0);
             if(this.storage.storeChunk(key, chunk)) {
                 this.storage.decSpaceAvailable(chunk.getSize());
                 chunk.storeChunk(peerID);
@@ -273,6 +273,14 @@ public class Peer implements RemoteInterface, Remote {
         if(this.initiatedChunks.containsKey(key)){
             this.initiatedChunks.remove(key);
         }
+    }
+
+    public void receiveRemoved(String[] message) {
+        if(Integer.parseInt(message[2]) == this.peerID) {
+            return;
+        }
+
+        System.out.println("Received removed " + message[3] + message[4]);
     }
 
     public boolean verifyRDInitiated(Map.Entry<String, Integer> chunk) {
@@ -421,23 +429,27 @@ public class Peer implements RemoteInterface, Remote {
     @Override
     public void reclaimOperation(ArrayList<String> info) {
         long diskSpacePermitted = Long.parseLong(info.get(0));
-        this.storage.setCapacity(diskSpacePermitted);
+        this.storage.setMaxCapacity(diskSpacePermitted);
 
         File backup = new File("peer" + this.peerID + "/backup/");
-        long toFree = getFolderSize(backup) - diskSpacePermitted;
-        if(toFree < 0) {
+        long folderSize = getFolderSize(backup);
+        this.storage.setSpaceAvailable(diskSpacePermitted - folderSize);
+
+        if(this.storage.getSpaceAvailable() > 0){
             return;
         }
 
-        if(diskSpacePermitted == 0) {
-            ConcurrentHashMap<Map.Entry<String,Integer>, Chunk> stored = this.storage.getStoredChunks();
-            for (Map.Entry<Map.Entry<String, Integer>, Chunk> entry : stored.entrySet()) {
-                Map.Entry<String, Integer> key = entry.getKey();
-                Chunk chunk = entry.getValue();
-                
+        ConcurrentHashMap<AbstractMap.SimpleEntry<String,Integer>, Chunk> stored = this.storage.getStoredChunks();
+        for (Map.Entry<AbstractMap.SimpleEntry<String, Integer>, Chunk> entry : stored.entrySet()) {
+            AbstractMap.SimpleEntry<String, Integer> key = entry.getKey();
+            Chunk chunk = entry.getValue();
+            this.storage.deleteChunk(key, this.peerID);
+            this.executor.execute(new SendRemoved(this.MCchannel, key.getKey(), key.getValue()));
+            if(this.storage.getSpaceAvailable() > 0){
+                return;
             }
         }
-        
+
     }
 
     @Override

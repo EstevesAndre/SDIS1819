@@ -23,6 +23,12 @@ public class FileManager implements java.io.Serializable {
     private int chunkNr;
     private final static char[] hexArray = "0123456789ABCDEF".toCharArray();
 
+    public FileManager(String fileID, String path, int rd) {
+        this.fileID = fileID;
+        this.path = path;
+        this.rd = rd;     
+    }
+
     public FileManager(String fileID, String path, int rd, int chunkNr) {
         this.fileID = fileID;
         this.path = path;

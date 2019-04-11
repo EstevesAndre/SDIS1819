@@ -14,8 +14,8 @@ public class Storage implements java.io.Serializable {
    
     private static final long serialVersionUID = 1L;
 
-    private int capacityAvailable;
-    private int maxCapacity;
+    private long capacityAvailable;
+    private long maxCapacity;
     private ConcurrentHashMap<Map.Entry<String,Integer>, Chunk> storedChunks;
     private ArrayList<FileManager> storedFiles;
     private ConcurrentHashMap<String, byte[]> restoredChunks;
@@ -30,27 +30,35 @@ public class Storage implements java.io.Serializable {
         reclaimedChunks = new ConcurrentHashMap<String, Integer>();
     }
 
-    public synchronized void incSpaceAvailable(int length) {
+    public synchronized void incSpaceAvailable(long length) {
         this.capacityAvailable += length;
     }
 
-    public synchronized void decSpaceAvailable(int length) {
+    public synchronized void decSpaceAvailable(long length) {
         this.capacityAvailable -= length;
     }
 
-    public synchronized int getSpaceAvailable() {
+    public synchronized long getSpaceAvailable() {
         return this.capacityAvailable;
     }
 
-    public synchronized void setCapacity(long capacity) {
-        this.capacity = capacity;
+    public synchronized void setSpaceAvailable(long spaceAvailable) {
+        this.capacityAvailable = spaceAvailable;
+    }
+
+    public synchronized void setMaxCapacity(long capacity) {
+        this.maxCapacity = capacity;
+    }
+
+    public synchronized long getMaxCapacity() {
+        return this.maxCapacity;
     }
 
     public ArrayList<FileManager> getStoredFiles() {
         return this.storedFiles;
     }
 
-    public ConcurrentHashMap<Map.Entry<String,Integer>, Chunk> getStoredChunks() {
+    public ConcurrentHashMap<AbstractMap.SimpleEntry<String,Integer>, Chunk> getStoredChunks() {
         return this.storedChunks;
     }
 
