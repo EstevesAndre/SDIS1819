@@ -9,7 +9,7 @@ public class Chunk {
     private String fileID;
     private String fileName;
     private int size;
-    private byte[] content;
+    private byte[] content; // restore
 
     private int observedRD;
     private int desiredRD;

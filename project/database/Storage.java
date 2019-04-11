@@ -20,7 +20,6 @@ public class Storage implements java.io.Serializable {
     private ArrayList<FileManager> storedFiles;
     private ConcurrentHashMap<String, byte[]> restoredChunks;
     private ConcurrentHashMap<String, Integer> reclaimedChunks;
-    private ConcurrentHashMap<String, HashSet<Integer>> storedMessages;
 
     public Storage(Peer peer) {
         capacity = 1000000000;
@@ -29,7 +28,6 @@ public class Storage implements java.io.Serializable {
         storedFiles = new ArrayList<>();
         restoredChunks = new ConcurrentHashMap<>();
         reclaimedChunks = new ConcurrentHashMap<>();
-        storedMessages = new ConcurrentHashMap<>();
     }
 
     public synchronized void incSpaceAvailable(int length) {
