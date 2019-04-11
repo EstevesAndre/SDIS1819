@@ -42,6 +42,10 @@ public class Storage implements java.io.Serializable {
         return this.capacityAvailable;
     }
 
+    public synchronized void setCapacity(long capacity) {
+        this.capacity = capacity;
+    }
+
     public ArrayList<FileManager> getStoredFiles() {
         return this.storedFiles;
     }
