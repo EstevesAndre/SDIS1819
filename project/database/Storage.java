@@ -28,7 +28,6 @@ public class Storage implements java.io.Serializable {
         storedFiles = new ArrayList<FileManager>();
         restoredChunks = new ConcurrentHashMap<String, byte[]>();
         reclaimedChunks = new ConcurrentHashMap<String, Integer>();
-        storedMessages = new ConcurrentHashMap<String, HashSet<Integer>>();
     }
 
     public synchronized void incSpaceAvailable(int length) {
