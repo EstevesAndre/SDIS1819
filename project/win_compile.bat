@@ -1,0 +1,1 @@
+javac -d bin rmi/*.java database/*.java service/*.java threads/*.java channels/*.java
