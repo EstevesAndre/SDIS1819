@@ -116,8 +116,18 @@ public class Chunk implements java.io.Serializable {
         }
     }
 
+    public synchronized void deleteStorer(int storer) {
+        if(storers.remove(storer)){
+            observedRD--;
+        }
+    }
+
     public int getObservedRD(){
         return observedRD;
+    }
+
+    public int getDesiredRD() {
+        return desiredRD;
     }
 
 }
