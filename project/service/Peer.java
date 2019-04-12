@@ -51,9 +51,7 @@ public class Peer implements RemoteInterface, Remote {
 
     private Storage storage;
 
-    private ConcurrentHashMap<Map.Entry<String,Integer>, Chunk> backedUpChunks;
     private ConcurrentHashMap<Map.Entry<String,Integer>, InitiatedChunk> initiatedChunks;
-    private ConcurrentHashMap<String,Integer> storedFiles;
     private ConcurrentHashMap<Map.Entry<String,Integer>, byte[]> restoredFile;
 
     private ThreadPoolExecutor executor;
@@ -70,8 +68,6 @@ public class Peer implements RemoteInterface, Remote {
         this.MDBchannel = new MDBChannel(MDBAddr, this);
         this.MDRchannel = new MDRChannel(MDRAddr, this);
         
-        this.storedFiles = new ConcurrentHashMap<String,Integer>();
-        this.backedUpChunks = new ConcurrentHashMap<Map.Entry<String,Integer>, Chunk>();
         this.initiatedChunks = new ConcurrentHashMap<Map.Entry<String,Integer>, InitiatedChunk>();
         this.restoring = false;
         this.restoredFile = new ConcurrentHashMap<Map.Entry<String,Integer>, byte[]>();
@@ -134,7 +130,8 @@ public class Peer implements RemoteInterface, Remote {
 
             byte[] buffer = new byte[(int) chunkFile.length()];
             in.read(buffer);
-            
+            in.close();
+
             Chunk chunk = new Chunk(fileID, chunkID, buffer, buffer.length);
 
             this.executor.execute((Runnable) new SendChunk(this.MDRchannel, fileID, chunk));
@@ -204,7 +201,7 @@ public class Peer implements RemoteInterface, Remote {
             AbstractMap.SimpleEntry<String, Integer> key = new AbstractMap.SimpleEntry<String, Integer>(fileID, chunkID);
             
             Chunk chunk = new Chunk(fileID, chunkID, chunkByte, chunkByte.length, rd, 0);
-            if(this.storage.storeChunk(key, chunk)) {
+            if(this.storage.storeChunk(key, chunk, this.peerID)) {
                 this.storage.decSpaceAvailable(chunk.getSize());
                 chunk.storeChunk(peerID);
             }
@@ -374,7 +371,7 @@ public class Peer implements RemoteInterface, Remote {
         for(int i = 0; i < chunks.size(); i++){
     
             AbstractMap.SimpleEntry<String, Integer> key = new AbstractMap.SimpleEntry<String, Integer>(fileID, chunks.get(i).getId());
-            this.storage.storeChunk(key, chunks.get(i));
+            this.storage.storeChunk(key, chunks.get(i), this.peerID);
             Peer.savesInfoStorage(this, this.storage);
             //InitiatedChunk initiatedChunk = new InitiatedChunk(rd);
             //this.initiatedChunks.put(new AbstractMap.SimpleEntry<String, Integer>(fileID, i), initiatedChunk);
@@ -429,7 +426,8 @@ public class Peer implements RemoteInterface, Remote {
 
         String fileID = getFileHashID(path);
         System.out.println("File id: " + fileID);
-
+        
+        this.storage.deleteFileSent(fileID);
         this.MCchannel.sendDelete(fileID);
     }
     

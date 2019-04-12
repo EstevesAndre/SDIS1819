@@ -79,6 +79,7 @@ public class Server {
 			DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, IPAddress, receivePacket.getPort());
 			serverSocket.send(sendPacket);
 		}
+
 	}
 
 	private static boolean validatePlateNumber(String platen)

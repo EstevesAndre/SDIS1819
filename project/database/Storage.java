@@ -18,16 +18,16 @@ public class Storage implements java.io.Serializable {
     private long maxCapacity;
     private ConcurrentHashMap<AbstractMap.SimpleEntry<String,Integer>, Chunk> storedChunks;
     private ArrayList<FileManager> storedFiles;
-    private ConcurrentHashMap<String, byte[]> restoredChunks;
-    private ConcurrentHashMap<String, Integer> reclaimedChunks;
+    //private ConcurrentHashMap<String, byte[]> restoredChunks;
+    //private ConcurrentHashMap<String, Integer> reclaimedChunks;
 
     public Storage() {
         maxCapacity = 1000000000;
         capacityAvailable = maxCapacity;
         storedChunks = new ConcurrentHashMap<AbstractMap.SimpleEntry<String,Integer>, Chunk>();
         storedFiles = new ArrayList<FileManager>();
-        restoredChunks = new ConcurrentHashMap<String, byte[]>();
-        reclaimedChunks = new ConcurrentHashMap<String, Integer>();
+        //restoredChunks = new ConcurrentHashMap<String, byte[]>();
+        //reclaimedChunks = new ConcurrentHashMap<String, Integer>();
     }
 
     public synchronized void incSpaceAvailable(long length) {
@@ -62,11 +62,12 @@ public class Storage implements java.io.Serializable {
         return this.storedChunks;
     }
 
-    public synchronized boolean storeChunk(AbstractMap.SimpleEntry<String, Integer> key, Chunk chunk) {
+    public synchronized boolean storeChunk(AbstractMap.SimpleEntry<String, Integer> key, Chunk chunk, int peerID) {
         if(this.storedChunks.containsKey(key))
             return false;
 
         this.storedChunks.put(key, chunk);
+        this.storedChunks.get(key).addStorer(peerID);
         return true;
     }
 
@@ -79,9 +80,16 @@ public class Storage implements java.io.Serializable {
     public synchronized void deleteChunk(AbstractMap.SimpleEntry<String, Integer> key, int peerID) throws IOException {
         if(this.storedChunks.containsKey(key) && this.storedChunks.get(key).isStored(peerID))
         {
-            System.out.println("caara");
             this.incSpaceAvailable(this.storedChunks.get(key).getSize());
             this.storedChunks.get(key).deleteChunk(peerID);
+        }
+    }
+
+    public synchronized void deleteFileSent(String fileID) {
+        for (Map.Entry<AbstractMap.SimpleEntry<String, Integer>, Chunk> entry : this.getStoredChunks().entrySet()) {
+            if(entry.getKey().getKey().equals(fileID)) {
+                this.storedChunks.get(entry.getKey()).eraseStorers();
+            }
         }
     }
 

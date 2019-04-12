@@ -44,11 +44,10 @@ public class Chunk implements java.io.Serializable {
         this.size = size;
         this.desiredRD = rd;
         this.observedRD = observedRD;
-
         storers =  new HashSet<Integer>();
     }
 
-    public void storeChunk(int peerID) throws IOException {
+    public synchronized void storeChunk(int peerID) throws IOException {
         // this.fileName = String.format("%s.%03d", this.fileID, this.id);
         this.fileName = String.format("chk%d", this.id);
         File newFile = new File("peer" + peerID + "/backup/" + this.fileID + "/" + this.fileName);
@@ -78,15 +77,19 @@ public class Chunk implements java.io.Serializable {
         this.content = null;
     }
 
+    public synchronized void eraseStorers() {
+        this.observedRD -= this.storers.size();
+        this.storers = new HashSet<Integer>();
+    }
+
     public boolean isStored(int peerID) {
         return this.storers.contains(peerID);
     }
 
-    public void deleteChunk(int peerID) throws IOException {
+    public synchronized void deleteChunk(int peerID) throws IOException {
         this.observedRD--;
         this.storers.remove(peerID);
         this.fileName = String.format("chk%d", this.id); 
-        System.out.println("HERE");       
         File file = new File("peer" + peerID + "/backup/" + this.fileID + "/" + this.fileName);
         file.delete();
     }
@@ -107,7 +110,7 @@ public class Chunk implements java.io.Serializable {
         this.desiredRD = newRD;
     }
 
-    public void addStorer(int storer) {
+    public synchronized void addStorer(int storer) {
         if(storers.add(storer)) {
             observedRD++;
         }
