@@ -301,14 +301,14 @@ public class Peer implements RemoteInterface, Remote {
 
     public static void savesInfoStorage(Peer peer, Storage store) {
         try {
-            File storageFile = new File(peer.getID() + "/storage.ser");
+            File storageFile = new File("peer" + peer.getID() + "/storage.ser");
             
             if (!storageFile.exists()) {
                 storageFile.getParentFile().mkdirs();
                 storageFile.createNewFile();
             }
 
-            FileOutputStream outFile = new FileOutputStream(peer.getID() + "/storage.ser");
+            FileOutputStream outFile = new FileOutputStream("peer" + peer.getID() + "/storage.ser");
             ObjectOutputStream output = new ObjectOutputStream(outFile);
             output.writeObject(store);
             output.close();
@@ -335,7 +335,7 @@ public class Peer implements RemoteInterface, Remote {
         Peer peer = new Peer(args[0], args[1], args[2], args[3], args[4], args[5]);
         
         try {   
-            FileInputStream fis = new FileInputStream(peer.peerID + "/storage.ser");
+            FileInputStream fis = new FileInputStream("peer" + peer.peerID + "/storage.ser");
             ObjectInputStream input = new ObjectInputStream(fis);
             peer.storage = (Storage) input.readObject();
             input.close();
@@ -428,6 +428,7 @@ public class Peer implements RemoteInterface, Remote {
         System.out.println("File id: " + fileID);
         
         this.storage.deleteFileSent(fileID);
+        Peer.savesInfoStorage(this, this.storage);
         this.MCchannel.sendDelete(fileID);
     }
     
@@ -439,6 +440,7 @@ public class Peer implements RemoteInterface, Remote {
         File backup = new File("peer" + this.peerID + "/backup/");
         long folderSize = getFolderSize(backup);
         this.storage.setSpaceAvailable(diskSpacePermitted - folderSize);
+        Peer.savesInfoStorage(this, this.storage);
 
         if(this.storage.getSpaceAvailable() > 0){
             return;
@@ -448,6 +450,7 @@ public class Peer implements RemoteInterface, Remote {
             AbstractMap.SimpleEntry<String, Integer> key = entry.getKey();
             Chunk chunk = entry.getValue();
             this.storage.deleteChunk(key, this.peerID);
+            Peer.savesInfoStorage(this, this.storage);
             this.executor.execute(new SendRemoved(this.MCchannel, key.getKey(), key.getValue()));
             if(this.storage.getSpaceAvailable() > 0){
                 return;
