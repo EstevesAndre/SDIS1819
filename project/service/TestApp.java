@@ -41,6 +41,7 @@ public class TestApp {
     // Example: java project/service/TestApp "localhost RemoteInterface" BACKUP ./example_file.txt 2
     // Example: java project/service/TestApp "localhost RemoteInterface" DELETE ./example_file.txt 
     // Example: java project/service/TestApp "localhost RemoteInterface" RESTORE example_file.txt
+    // Example: java project/service/TestApp "localhost RemoteInterface2" RECLAIM 0
     public static void main(String args[]) throws Exception {
 
         if(args.length != 2 && args.length != 3 && args.length != 4)

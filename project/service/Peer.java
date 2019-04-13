@@ -17,6 +17,8 @@ import java.util.HashMap;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 import project.channels.MCChannel;
 import project.channels.MDBChannel;
@@ -49,7 +51,12 @@ public class Peer implements RemoteInterface, Remote {
     private MDRChannel MDRchannel;
 
     private Storage storage;
+    
+    private ConcurrentHashMap<AbstractMap.SimpleEntry<String, Integer>, InitiatedChunk> initiatedChunks;
+    private ConcurrentHashMap<AbstractMap.SimpleEntry<String, Integer>, ScheduledFuture> waitingOnPutchunks;
+
     private ThreadPoolExecutor executor;
+    private ScheduledThreadPoolExecutor scheduledExecutor;
 
     public Peer(String version, String serverID, String accessPoint, String MCAddr, String MDBAddr, String MDRAddr) throws Exception {
         
@@ -62,7 +69,12 @@ public class Peer implements RemoteInterface, Remote {
         this.MCchannel = new MCChannel(MCAddr, this);
         this.MDBchannel = new MDBChannel(MDBAddr, this);
         this.MDRchannel = new MDRChannel(MDRAddr, this);
-    
+        
+        this.initiatedChunks = new ConcurrentHashMap<AbstractMap.SimpleEntry<String, Integer>, InitiatedChunk>();
+        this.restoring = false;
+
+        this.scheduledExecutor = new ScheduledThreadPoolExecutor(5);
+
         this.joinRMI();
     }
 
@@ -239,11 +251,25 @@ public class Peer implements RemoteInterface, Remote {
     }
 
     public void receiveRemoved(String[] message) {
-        if(Integer.parseInt(message[2]) == this.peerID) {
+        int sender = Integer.parseInt(message[2]);
+        if(sender == this.peerID) {
+            return;
+        }
+        
+        String fileId = message[3];
+        int chunkId = Integer.parseInt(message[4]);
+        AbstractMap.SimpleEntry<String, Integer> key = new AbstractMap.SimpleEntry<String, Integer>(fileId, chunkId);
+        Chunk chunk = this.storage.getStoredChunk(key);
+
+        if(chunk == null) {return;}
+
+        chunk.deleteStorer(sender);
+        if(chunk.getDesiredRD() <= chunk.getObservedRD()) {
             return;
         }
 
-        System.out.println("Received removed " + message[3] + message[4]);
+        //this.initiatedChunks.put(key, chunk);
+        //this.scheduledExecutor.schedule(command, delay, unit)
     }
 
     public boolean hasInitiatedChunk(String fileID) {
@@ -262,7 +288,6 @@ public class Peer implements RemoteInterface, Remote {
         long size = 0;
         for (File file : dir.listFiles()) {
             if (file.isFile()) {
-                System.out.println(file.getName() + " " + file.length());
                 size += file.length();
             }
             else if(dir.isDirectory()){
@@ -442,7 +467,7 @@ public class Peer implements RemoteInterface, Remote {
             Chunk chunk = entry.getValue();
             this.storage.deleteChunk(key, this.peerID);
             Peer.savesInfoStorage(this, this.storage);
-            this.executor.execute(new SendRemoved(this.MCchannel, key.getKey(), key.getValue()));
+            this.executor.execute((Runnable) new SendRemoved(this.MCchannel, key.getKey(), key.getValue()));
             if(this.storage.getSpaceAvailable() > 0){
                 return;
             }
