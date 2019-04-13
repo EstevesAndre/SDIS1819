@@ -52,7 +52,6 @@ public class Peer implements RemoteInterface, Remote {
 
     private Storage storage;
     
-    private ConcurrentHashMap<AbstractMap.SimpleEntry<String, Integer>, InitiatedChunk> initiatedChunks;
     private ConcurrentHashMap<AbstractMap.SimpleEntry<String, Integer>, ScheduledFuture> waitingOnPutchunks;
 
     private ThreadPoolExecutor executor;
@@ -70,7 +69,6 @@ public class Peer implements RemoteInterface, Remote {
         this.MDBchannel = new MDBChannel(MDBAddr, this);
         this.MDRchannel = new MDRChannel(MDRAddr, this);
         
-        this.initiatedChunks = new ConcurrentHashMap<AbstractMap.SimpleEntry<String, Integer>, InitiatedChunk>();
         this.restoring = false;
 
         this.scheduledExecutor = new ScheduledThreadPoolExecutor(5);
@@ -235,8 +233,14 @@ public class Peer implements RemoteInterface, Remote {
 
         if(this.storage.containsChunk(key)) {
             this.storage.getStoredChunks().get(key).addStorer(sender);
-            Peer.savesInfoStorage(this, this.storage);
         }
+
+        InitiatedChunk initiated = this.storage.getInitiatedChunk(key);
+        if(initiated != null) {
+            initiated.addStorer(sender);
+        }
+
+        Peer.savesInfoStorage(this, this.storage);
     }
 
     public void receiveDelete(String[] message) throws IOException {
@@ -387,7 +391,8 @@ public class Peer implements RemoteInterface, Remote {
         for(int i = 0; i < chunks.size(); i++){
     
             AbstractMap.SimpleEntry<String, Integer> key = new AbstractMap.SimpleEntry<String, Integer>(fileID, chunks.get(i).getId());
-            this.storage.storeChunk(key, chunks.get(i), this.peerID, false);
+            this.storage.initiateChunk(key, rd);
+            //this.storage.storeChunk(key, chunks.get(i), this.peerID, false);
             Peer.savesInfoStorage(this, this.storage);
 
             this.executor.execute(new SendPutChunk(this.MDBchannel, fileID, chunks.get(i), rd));

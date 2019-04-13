@@ -38,9 +38,9 @@ public class TestApp {
     }
 
     // Usage: java project/service/TestApp <peer_ap> <sub_protocol> <opnd_1> <opnd_2> 
-    // Example: java project/service/TestApp "localhost RemoteInterface" BACKUP ./example_file.txt 2
-    // Example: java project/service/TestApp "localhost RemoteInterface" DELETE ./example_file.txt 
-    // Example: java project/service/TestApp "localhost RemoteInterface" RESTORE example_file.txt
+    // Example: java project/service/TestApp "localhost RemoteInterface" BACKUP ./file_test1.txt 2
+    // Example: java project/service/TestApp "localhost RemoteInterface" DELETE ./file_test1.txt
+    // Example: java project/service/TestApp "localhost RemoteInterface" RESTORE file_test1.txt
     // Example: java project/service/TestApp "localhost RemoteInterface2" RECLAIM 0
     public static void main(String args[]) throws Exception {
 

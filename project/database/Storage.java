@@ -16,18 +16,21 @@ public class Storage implements java.io.Serializable {
 
     private long capacityAvailable;
     private long maxCapacity;
+
+    private ConcurrentHashMap<AbstractMap.SimpleEntry<String, Integer>, InitiatedChunk> initiatedChunks;
     private ConcurrentHashMap<AbstractMap.SimpleEntry<String,Integer>, Chunk> storedChunks;
-    private ArrayList<FileManager> storedFiles;
     private ConcurrentHashMap<AbstractMap.SimpleEntry<String, Integer>, byte[]> restoredChunks;
-    //private ConcurrentHashMap<AbstractMap.SimpleEntry<String,Integer>, Integer> reclaimedChunks;
+    private ArrayList<FileManager> storedFiles;
 
     public Storage() {
         maxCapacity = 1000000000;
         capacityAvailable = maxCapacity;
+        
+        initiatedChunks = new ConcurrentHashMap<AbstractMap.SimpleEntry<String, Integer>, InitiatedChunk>();
         storedChunks = new ConcurrentHashMap<AbstractMap.SimpleEntry<String,Integer>, Chunk>();
-        storedFiles = new ArrayList<FileManager>();
         restoredChunks = new ConcurrentHashMap<AbstractMap.SimpleEntry<String, Integer>, byte[]>();
-        //reclaimedChunks = new ConcurrentHashMap<AbstractMap.SimpleEntry<String,Integer>, Integer>();
+
+        storedFiles = new ArrayList<FileManager>();
     }
 
     public synchronized void incSpaceAvailable(long length) {
@@ -183,10 +186,22 @@ public class Storage implements java.io.Serializable {
         return false;
     }
 
-    public boolean verifyRDInitiated(AbstractMap.SimpleEntry<String, Integer> chunk) {
-        if(this.storedChunks.containsKey(chunk)) {
-            return ((this.storedChunks.get(chunk).getObservedRD() >= this.storedChunks.get(chunk).getDesiredRD()) ? true:false);
+    public void initiateChunk(AbstractMap.SimpleEntry<String,Integer> key, int desiredRD) {
+        InitiatedChunk initiated = new InitiatedChunk(desiredRD);
+
+        this.initiatedChunks.put(key, initiated);
+    }
+
+    public InitiatedChunk getInitiatedChunk(AbstractMap.SimpleEntry<String,Integer> key) {
+        return this.initiatedChunks.get(key); // InitiatedChunk or null
+    }
+
+    public boolean verifyRDInitiated(AbstractMap.SimpleEntry<String, Integer> key) {
+        InitiatedChunk initiated = this.initiatedChunks.get(key);
+        if(initiated != null) {
+            return ((initiated.getDesiredRD() <= initiated.getObservedRD())? true : false);
         }
+
         return false;
     }
 }
