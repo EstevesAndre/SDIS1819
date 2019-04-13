@@ -42,7 +42,7 @@ public class MDBChannel extends Channel implements Runnable{
         int waitingTime = 1000;
         AbstractMap.SimpleEntry<String, Integer> putchunk = new AbstractMap.SimpleEntry<String, Integer>(fileID, chunk.getId());
 
-        if(!this.peer.hasInitiatedChunk(fileID)) {return;}
+        if(!this.peer.hasInitiatedChunk(putchunk)) {return;}
 
         while(attempts < 5) {
             System.out.println("Attempt: " + attempts);

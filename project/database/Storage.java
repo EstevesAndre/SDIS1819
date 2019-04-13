@@ -186,10 +186,18 @@ public class Storage implements java.io.Serializable {
         return false;
     }
 
+    public boolean hasInitiatedChunk(AbstractMap.SimpleEntry<String,Integer> key) {
+        return this.initiatedChunks.containsKey(key);
+    }
+
     public void initiateChunk(AbstractMap.SimpleEntry<String,Integer> key, int desiredRD) {
         InitiatedChunk initiated = new InitiatedChunk(desiredRD);
 
         this.initiatedChunks.put(key, initiated);
+    }
+
+    public void removeInitiatedChunk(AbstractMap.SimpleEntry<String,Integer> key) {
+        this.initiatedChunks.remove(key);
     }
 
     public InitiatedChunk getInitiatedChunk(AbstractMap.SimpleEntry<String,Integer> key) {

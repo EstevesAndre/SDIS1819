@@ -2,7 +2,7 @@ package project.database;
 
 import java.util.HashSet;
 
-public class InitiatedChunk {
+public class InitiatedChunk implements java.io.Serializable{
     private int observedRD;
     private int desiredRD;
     private HashSet<Integer> storers; // id's of the peers that backed up the chunk

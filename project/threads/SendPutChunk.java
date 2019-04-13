@@ -27,9 +27,11 @@ public class SendPutChunk implements Runnable{
         } catch (IOException e) {
             e.printStackTrace();
         }
+        catch(InterruptedException e) {}
         catch(Exception e){
             e.printStackTrace();
         }
+
     }
 
 

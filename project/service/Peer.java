@@ -15,10 +15,12 @@ import java.util.Map;
 import java.util.HashSet;
 import java.util.HashMap;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ThreadLocalRandom;
 
 import project.channels.MCChannel;
 import project.channels.MDBChannel;
@@ -72,6 +74,8 @@ public class Peer implements RemoteInterface, Remote {
         this.restoring = false;
 
         this.scheduledExecutor = new ScheduledThreadPoolExecutor(5);
+
+        this.waitingOnPutchunks = new ConcurrentHashMap<AbstractMap.SimpleEntry<String, Integer>, ScheduledFuture>();
 
         this.joinRMI();
     }
@@ -192,16 +196,22 @@ public class Peer implements RemoteInterface, Remote {
         if(Integer.parseInt(received[2]) == this.peerID) {
             return;
         }
-        System.out.println("Receivrd putChunk " + received[4] + " " + chunkByte.length);
         
         String fileID = received[3];
         Integer chunkID = Integer.parseInt(received[4]);
         System.out.println("Received putChunk " + chunkID + " " + chunkByte.length);
         
+        AbstractMap.SimpleEntry<String, Integer> key = new AbstractMap.SimpleEntry<String, Integer>(fileID, chunkID);
+        if(this.storage.hasInitiatedChunk(fileID)) {return;} // a peer shouldn't store its own files
+        if(this.waitingOnPutchunks.containsKey(key)) {
+            this.waitingOnPutchunks.get(key).cancel(true);
+            this.waitingOnPutchunks.remove(key);
+            this.storage.removeInitiatedChunk(key);
+        }
+
         if(this.storage.getSpaceAvailable() >= chunkByte.length)
         {
             int rd = Integer.parseInt(received[5]);
-            AbstractMap.SimpleEntry<String, Integer> key = new AbstractMap.SimpleEntry<String, Integer>(fileID, chunkID);
             
             Chunk chunk = new Chunk(fileID, chunkID, chunkByte, chunkByte.length, rd);
             if(this.storage.storeChunk(key, chunk, this.peerID, true)) {
@@ -267,22 +277,30 @@ public class Peer implements RemoteInterface, Remote {
         
         String fileId = message[3];
         int chunkId = Integer.parseInt(message[4]);
+
         AbstractMap.SimpleEntry<String, Integer> key = new AbstractMap.SimpleEntry<String, Integer>(fileId, chunkId);
         Chunk chunk = this.storage.getStoredChunk(key);
 
         if(chunk == null) {return;}
+        int rd = chunk.getDesiredRD();
 
         chunk.deleteStorer(sender);
-        if(chunk.getDesiredRD() <= chunk.getObservedRD()) {
+        if(chunk.getObservedRD() >= rd) { // replication degree remains achieved
             return;
         }
 
-        //this.initiatedChunks.put(key, chunk);
-        //this.scheduledExecutor.schedule(command, delay, unit)
+        this.storage.initiateChunk(key, rd);
+        int delay = ThreadLocalRandom.current().nextInt(400);
+        SendPutChunk runnable = new SendPutChunk(this.MDBchannel, fileId, chunk, rd);
+        this.waitingOnPutchunks.put(key, this.scheduledExecutor.schedule(runnable, delay, TimeUnit.MILLISECONDS));
     }
 
     public boolean hasInitiatedChunk(String fileID) {
         return this.storage.hasInitiatedChunk(fileID);
+    }
+
+    public boolean hasInitiatedChunk(AbstractMap.SimpleEntry<String, Integer> chunk) {
+        return this.storage.hasInitiatedChunk(chunk);
     }
 
     public boolean verifyRDInitiated(AbstractMap.SimpleEntry<String, Integer> chunk) {
@@ -392,7 +410,7 @@ public class Peer implements RemoteInterface, Remote {
     
             AbstractMap.SimpleEntry<String, Integer> key = new AbstractMap.SimpleEntry<String, Integer>(fileID, chunks.get(i).getId());
             this.storage.initiateChunk(key, rd);
-            //this.storage.storeChunk(key, chunks.get(i), this.peerID, false);
+            this.storage.storeChunk(key, chunks.get(i), this.peerID, false);
             Peer.savesInfoStorage(this, this.storage);
 
             this.executor.execute(new SendPutChunk(this.MDBchannel, fileID, chunks.get(i), rd));
