@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.AbstractMap;
 import java.util.Map;
+import java.util.Arrays;
 
 import java.io.File;
 import java.io.BufferedInputStream;
@@ -53,8 +54,12 @@ public class FileManager implements java.io.Serializable {
     public int getChunkNr() {
         return chunkNr;
     }
+
+    public void setRD(int newRD) {
+        this.rd = newRD;
+    }
     
-    public static ArrayList<Chunk> splitFile(String path) throws IOException {
+    public static ArrayList<Chunk> splitFile(String fileID, String path, int rd) throws IOException {
         File file = new File(path);
 
         System.out.println(path);
@@ -71,7 +76,9 @@ public class FileManager implements java.io.Serializable {
 
             int bytesAmount = 0;
             while ((bytesAmount = bis.read(buffer)) > 0) {
-                chunks.add(new Chunk(partCounter, buffer, bytesAmount));
+                byte[] copy = Arrays.copyOf(buffer, bytesAmount);
+
+                chunks.add(new Chunk(fileID, partCounter, copy, bytesAmount, rd));
                 partCounter++;
             }
         }
@@ -79,7 +86,7 @@ public class FileManager implements java.io.Serializable {
         {
             System.err.println("WARNING --> : File: \"" + path + "\" not found!\n");
         }
-        
+
         return chunks;
     }
  

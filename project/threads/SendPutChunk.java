@@ -15,7 +15,7 @@ public class SendPutChunk implements Runnable{
     public SendPutChunk(MDBChannel mdb, String fileID, Chunk chunk, int rd) {
         this.mdb = mdb;
         this.fileID = fileID;
-        this.chunk = chunk;
+        this.chunk = new Chunk(chunk.getFileId(), chunk.getId(), chunk.getContent(), chunk.getSize(), rd);
         this.rd = rd;
     }
 

@@ -122,11 +122,16 @@ public class Peer implements RemoteInterface, Remote {
         
         System.out.println("Received getChunk " + fileID + " " + chunkID);
         
-        if(this.storage.containsChunk(key))
+        if(this.storage.containsChunk(key) && this.storage.getStoredChunk(key).getObservedRD() > 0)
         {
             String fileName = String.format("chk%d", chunkID);        
             File chunkFile = new File("peer" + this.peerID + "/backup/" + fileID + "/" + fileName);
 
+            if(!chunkFile.exists()) {
+                System.out.println("The desired chunk does not exist here anymore");
+                return;
+            }
+            
             FileInputStream in = new FileInputStream(chunkFile);
 
             byte[] buffer = new byte[(int) chunkFile.length()];
@@ -200,7 +205,7 @@ public class Peer implements RemoteInterface, Remote {
             int rd = Integer.parseInt(received[5]);
             AbstractMap.SimpleEntry<String, Integer> key = new AbstractMap.SimpleEntry<String, Integer>(fileID, chunkID);
             
-            Chunk chunk = new Chunk(fileID, chunkID, chunkByte, chunkByte.length, rd, 0);
+            Chunk chunk = new Chunk(fileID, chunkID, chunkByte, chunkByte.length, rd);
             if(this.storage.storeChunk(key, chunk, this.peerID, true)) {
                 this.storage.decSpaceAvailable(chunk.getSize());
                 chunk.storeChunk(peerID);
@@ -245,9 +250,9 @@ public class Peer implements RemoteInterface, Remote {
             if(key.getKey().equals(fileID)) {
                 this.storage.deleteChunk(new AbstractMap.SimpleEntry<String, Integer>(fileID, key.getValue()), this.peerID);
                 System.out.println("Received delete " + fileID + " " + key.getValue());
-                Peer.savesInfoStorage(this, this.storage);                
             }
         }
+        Peer.savesInfoStorage(this, this.storage);
     }
 
     public void receiveRemoved(String[] message) {
@@ -376,14 +381,13 @@ public class Peer implements RemoteInterface, Remote {
         System.out.println("Received the following request: - BACKUP " + path + " rd - " + rd);
         String fileID = getFileHashID(path);
         
-        ArrayList<Chunk> chunks = FileManager.splitFile(path);
+        ArrayList<Chunk> chunks = FileManager.splitFile(fileID, path, rd);
         this.storage.addFileManager(new FileManager(fileID, path, rd, chunks.size()));
     
         for(int i = 0; i < chunks.size(); i++){
     
             AbstractMap.SimpleEntry<String, Integer> key = new AbstractMap.SimpleEntry<String, Integer>(fileID, chunks.get(i).getId());
             this.storage.storeChunk(key, chunks.get(i), this.peerID, false);
-            this.storage.getStoredChunks().get(key).setReplicationDegree(rd);
             Peer.savesInfoStorage(this, this.storage);
 
             this.executor.execute(new SendPutChunk(this.MDBchannel, fileID, chunks.get(i), rd));
@@ -413,7 +417,7 @@ public class Peer implements RemoteInterface, Remote {
                 int nChunks = this.storage.getStoredFiles().get(i).getChunkNr();
                 System.out.println("nChunks: " + nChunks);
                 this.restoring = true;
-
+                
                 for(int j = 0; j <= nChunks; j++) // chunks ids -> [0,nChunks];
                 {
                     this.executor.execute(new SendGetChunk(this.MCchannel, fileID, j));
@@ -492,6 +496,7 @@ public class Peer implements RemoteInterface, Remote {
         if(this.storage.getStoredFiles().size() == 0) information += " - No files backed up\n";
 
         for(int i = 0; i < this.storage.getStoredFiles().size(); i++) {
+            if(i >= 1 ) information += "\n";
             information += "  - The file pathname: " + this.storage.getStoredFiles().get(i).getPath() + "\n";
             information += "  - The backup service id of the file: " + this.storage.getStoredFiles().get(i).getFileID() + "\n";
             information += "  - The desired replication degree: " + this.storage.getStoredFiles().get(i).getDRD() + "\n";

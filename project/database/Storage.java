@@ -70,10 +70,15 @@ public class Storage implements java.io.Serializable {
         return this.storedChunks.get(key); // Chunk or null
     }
 
-    public synchronized boolean storeChunk(AbstractMap.SimpleEntry<String, Integer> key, Chunk chunk, int peerID, boolean onStore) {
+    public synchronized boolean storeChunk(AbstractMap.SimpleEntry<String, Integer> key, Chunk chunk, int peerID, boolean onStore) throws IOException {
         if(this.storedChunks.containsKey(key))
-            return false;
-
+        {
+            if(this.storedChunks.get(key).wasDeleted()) {
+                this.storedChunks.get(key).storeChunk(peerID);
+            }
+            else return false;
+        }
+        
         this.storedChunks.put(key, chunk);
         if(onStore) this.storedChunks.get(key).addStorer(peerID);
         return true;
@@ -119,6 +124,12 @@ public class Storage implements java.io.Serializable {
         boolean found = false;
         for(FileManager fm : this.storedFiles) {
             if(fm.getFileID().equals(newFM.getFileID())) {
+                fm.setRD(newFM.getDRD());
+                for (Map.Entry<AbstractMap.SimpleEntry<String, Integer>, Chunk> entry : this.getStoredChunks().entrySet()) {
+                    if(entry.getKey().getKey().equals(fm.getFileID())) {
+                        this.storedChunks.get(entry.getKey()).setRD(newFM.getDRD());
+                    }
+                }
                 found = true;
             }
         }
