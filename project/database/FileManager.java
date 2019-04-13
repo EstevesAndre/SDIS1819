@@ -83,10 +83,9 @@ public class FileManager implements java.io.Serializable {
         return chunks;
     }
  
-    public static void restoreFile(String peerID, String fileID, ConcurrentHashMap<Map.Entry<String,Integer>, byte[]> chunks) throws IOException {
+    public static void restoreFile(String path, String fileID, int nrChunks, ConcurrentHashMap<AbstractMap.SimpleEntry<String, Integer>, byte[]> chunks) throws IOException {
 
-        String path = peerID + "/restored/file.txt"; 
-
+        //System.out.println("PATH = " + path);
         File file = new File(path);
 
         try {
@@ -97,13 +96,15 @@ public class FileManager implements java.io.Serializable {
             }
 
             FileOutputStream fos = new FileOutputStream(file, true);
-            
-            for(int chunkID = 0; chunkID < chunks.size(); chunkID++)
-            {
-                AbstractMap.SimpleEntry<String, Integer> chunk = new AbstractMap.SimpleEntry<String, Integer>(fileID, chunkID);
-                byte[] part = chunks.get(chunk);
 
-                fos.write(part);
+            for(int chunkID = 0; chunkID < nrChunks; chunkID++)
+            {
+                for(AbstractMap.SimpleEntry<String, Integer> key : chunks.keySet()) {
+                    if(key.getKey().equals(fileID) && key.getValue() == chunkID) {
+                        byte[] p = chunks.get(key);
+                        fos.write(p);
+                    }
+                }
             }
 
             fos.close();

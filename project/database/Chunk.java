@@ -48,7 +48,7 @@ public class Chunk implements java.io.Serializable {
     }
 
     public synchronized void storeChunk(int peerID) throws IOException {
-        // this.fileName = String.format("%s.%03d", this.fileID, this.id);
+
         this.fileName = String.format("chk%d", this.id);
         File newFile = new File("peer" + peerID + "/backup/" + this.fileID + "/" + this.fileName);
         newFile.getParentFile().mkdirs();
@@ -124,4 +124,7 @@ public class Chunk implements java.io.Serializable {
         return observedRD;
     }
 
+    public int getDesiredRD(){
+        return desiredRD;
+    }
 }

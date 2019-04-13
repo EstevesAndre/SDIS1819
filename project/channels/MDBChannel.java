@@ -40,21 +40,26 @@ public class MDBChannel extends Channel implements Runnable{
     public void verifyRDinitiated(String fileID, Chunk chunk, int rd) throws Exception {
         int attempts = 1;
         int waitingTime = 1000;
-        Map.Entry<String, Integer> putchunk = new AbstractMap.SimpleEntry<String, Integer>(fileID, chunk.getId());
+        AbstractMap.SimpleEntry<String, Integer> putchunk = new AbstractMap.SimpleEntry<String, Integer>(fileID, chunk.getId());
 
-        if(!this.peer.hasInitiatedChunk(putchunk)) {return;}
+        if(!this.peer.hasInitiatedChunk(fileID)) {return;}
 
         while(attempts < 5) {
+            System.out.println("Attempt: " + attempts);
             Thread.sleep(waitingTime);
             if(!this.peer.verifyRDInitiated(putchunk)){
                 sendPutChunk(fileID, chunk, rd);
             }
             else {
+                System.out.println("Backup the chunk(" + chunk.getId() + ") with the desired RD(" + rd + ")");
                 return;
             }
             waitingTime *= 2;
             attempts++;
         }
+        
+        Thread.sleep(500);
+        System.out.println("Couldn't backup the chunk(" + chunk.getId() + ") with the desired RD(" + rd + ")");
     }
 
     @Override

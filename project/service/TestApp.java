@@ -60,10 +60,10 @@ public class TestApp {
         try {
             switch(this.operation) {
                 case "BACKUP":
-                    this.RMIStub.backupOperation(this.operationArgs);
+                    info = this.RMIStub.backupOperation(this.operationArgs);
                 break;
                 case "RESTORE":
-                    this.RMIStub.restoreOperation(this.operationArgs);
+                    info = this.RMIStub.restoreOperation(this.operationArgs);
                 break;
                 case "DELETE":
                     this.RMIStub.deleteOperation(this.operationArgs);
@@ -82,7 +82,7 @@ public class TestApp {
                             + "\n- DELETE"
                             + "\n- RECLAIM"
                             + "\n- STATE"
-                            + ".\r\n");
+                            + "\r\n");
                     return;
             }
         }
@@ -98,7 +98,7 @@ public class TestApp {
 
         System.out.println("Request sent!\r\n");
         if(info != null) {
-            System.out.println("Response:\n\n" + info);
+            System.out.println("Response:\n" + info);
         }
     }
 }

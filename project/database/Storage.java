@@ -18,16 +18,16 @@ public class Storage implements java.io.Serializable {
     private long maxCapacity;
     private ConcurrentHashMap<AbstractMap.SimpleEntry<String,Integer>, Chunk> storedChunks;
     private ArrayList<FileManager> storedFiles;
-    //private ConcurrentHashMap<String, byte[]> restoredChunks;
-    //private ConcurrentHashMap<String, Integer> reclaimedChunks;
+    private ConcurrentHashMap<AbstractMap.SimpleEntry<String, Integer>, byte[]> restoredChunks;
+    //private ConcurrentHashMap<AbstractMap.SimpleEntry<String,Integer>, Integer> reclaimedChunks;
 
     public Storage() {
         maxCapacity = 1000000000;
         capacityAvailable = maxCapacity;
         storedChunks = new ConcurrentHashMap<AbstractMap.SimpleEntry<String,Integer>, Chunk>();
         storedFiles = new ArrayList<FileManager>();
-        //restoredChunks = new ConcurrentHashMap<String, byte[]>();
-        //reclaimedChunks = new ConcurrentHashMap<String, Integer>();
+        restoredChunks = new ConcurrentHashMap<AbstractMap.SimpleEntry<String, Integer>, byte[]>();
+        //reclaimedChunks = new ConcurrentHashMap<AbstractMap.SimpleEntry<String,Integer>, Integer>();
     }
 
     public synchronized void incSpaceAvailable(long length) {
@@ -58,8 +58,12 @@ public class Storage implements java.io.Serializable {
         return this.storedFiles;
     }
 
-    public ConcurrentHashMap<AbstractMap.SimpleEntry<String,Integer>, Chunk> getStoredChunks() {
+    public ConcurrentHashMap<AbstractMap.SimpleEntry<String, Integer>, Chunk> getStoredChunks() {
         return this.storedChunks;
+    }
+
+    public ConcurrentHashMap<AbstractMap.SimpleEntry<String, Integer>, byte[]> getRestoredChunks() {
+        return this.restoredChunks;
     }
 
     public synchronized boolean storeChunk(AbstractMap.SimpleEntry<String, Integer> key, Chunk chunk, int peerID, boolean onStore) {
@@ -93,7 +97,76 @@ public class Storage implements java.io.Serializable {
         }
     }
 
+    public String getFileName(String fileID) {
+        for(FileManager fm : this.storedFiles) {
+            if(fm.getFileID().equals(fileID)) {
+                String path = fm.getPath();
+                while(path.charAt(0) == '.' || path.charAt(0) == '/') {
+                    path = path.substring(1);
+                }
+                return path;
+            }
+        }
+
+        return "NotFound.txt";
+    }
+
     public void addFileManager(FileManager fm) {
-        this.storedFiles.add(fm);
+        if(!storedFiles.contains(fm))
+            this.storedFiles.add(fm);
+    }
+
+    public synchronized void addRestoredChunk(AbstractMap.SimpleEntry<String, Integer> key, byte[] content) {
+        if(!this.restoredChunks.containsKey(key)) {
+            this.restoredChunks.put(key, content);
+        }
+    }
+
+    public synchronized int getNrChunks(String fileID) {
+        int nrChunks = 0;
+
+        for(FileManager fm : this.storedFiles) {
+            if(fm.getFileID().equals(fileID)) {
+                nrChunks = fm.getChunkNr();
+                break;
+            }
+        }
+        
+        return nrChunks;
+    }
+
+    public boolean isrestorePossible(String fileID) {
+        int nrChunks = 0;
+
+        for (AbstractMap.SimpleEntry<String, Integer> key : this.getRestoredChunks().keySet()) {
+            if(key.getKey().equals(fileID)) {
+                nrChunks++;
+            }
+        }
+
+        return getNrChunks(fileID) == nrChunks;
+    }
+
+    public void deleteRestoreChunks(String fileID) {
+        for (AbstractMap.SimpleEntry<String, Integer> key : this.getRestoredChunks().keySet()) {
+            if(key.getKey().equals(fileID))
+                this.getRestoredChunks().remove(key);
+        }
+    }
+
+    public boolean hasInitiatedChunk(String fileID) {
+        for(FileManager fm : this.storedFiles) {
+            if(fm.getFileID().equals(fileID)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean verifyRDInitiated(AbstractMap.SimpleEntry<String, Integer> chunk) {
+        if(this.storedChunks.containsKey(chunk)) {
+            return ((this.storedChunks.get(chunk).getObservedRD() >= this.storedChunks.get(chunk).getDesiredRD()) ? true:false);
+        }
+        return false;
     }
 }
