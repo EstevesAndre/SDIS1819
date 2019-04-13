@@ -62,12 +62,12 @@ public class Storage implements java.io.Serializable {
         return this.storedChunks;
     }
 
-    public synchronized boolean storeChunk(AbstractMap.SimpleEntry<String, Integer> key, Chunk chunk, int peerID) {
+    public synchronized boolean storeChunk(AbstractMap.SimpleEntry<String, Integer> key, Chunk chunk, int peerID, boolean onStore) {
         if(this.storedChunks.containsKey(key))
             return false;
 
         this.storedChunks.put(key, chunk);
-        this.storedChunks.get(key).addStorer(peerID);
+        if(onStore) this.storedChunks.get(key).addStorer(peerID);
         return true;
     }
 

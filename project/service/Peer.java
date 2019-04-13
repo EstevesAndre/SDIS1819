@@ -201,7 +201,7 @@ public class Peer implements RemoteInterface, Remote {
             AbstractMap.SimpleEntry<String, Integer> key = new AbstractMap.SimpleEntry<String, Integer>(fileID, chunkID);
             
             Chunk chunk = new Chunk(fileID, chunkID, chunkByte, chunkByte.length, rd, 0);
-            if(this.storage.storeChunk(key, chunk, this.peerID)) {
+            if(this.storage.storeChunk(key, chunk, this.peerID, true)) {
                 this.storage.decSpaceAvailable(chunk.getSize());
                 chunk.storeChunk(peerID);
             }
@@ -371,10 +371,9 @@ public class Peer implements RemoteInterface, Remote {
         for(int i = 0; i < chunks.size(); i++){
     
             AbstractMap.SimpleEntry<String, Integer> key = new AbstractMap.SimpleEntry<String, Integer>(fileID, chunks.get(i).getId());
-            this.storage.storeChunk(key, chunks.get(i), this.peerID);
+            this.storage.storeChunk(key, chunks.get(i), this.peerID, false);
             Peer.savesInfoStorage(this, this.storage);
-            //InitiatedChunk initiatedChunk = new InitiatedChunk(rd);
-            //this.initiatedChunks.put(new AbstractMap.SimpleEntry<String, Integer>(fileID, i), initiatedChunk);
+
             this.executor.execute(new SendPutChunk(this.MDBchannel, fileID, chunks.get(i), rd));
             Thread.sleep(100);
         }
@@ -481,28 +480,42 @@ public class Peer implements RemoteInterface, Remote {
             information += "  - The desired replication degree: " + this.storage.getStoredFiles().get(i).getDRD() + "\n";
             information += "  - For each chunk of the file:\n";
 
-            for(Map.Entry<String, Integer> key : this.storage.getStoredChunks().keySet()) {
+            for(AbstractMap.SimpleEntry<String, Integer> key : this.storage.getStoredChunks().keySet()) {
                 if(key.getKey().equals(this.storage.getStoredFiles().get(i).getFileID())) {
                     information += "    - Its id: " + key.getValue() + "\n";
-                    information += "   - Its perceived replication degree: " + 
-                        this.storage.getStoredChunks().get(
-                            new AbstractMap.SimpleEntry<String, Integer>(this.storage.getStoredFiles().get(i).getFileID(), key.getValue())).getObservedRD()
-                        + "\n";
+                    information += "      Its perceived replication degree: " + 
+                            this.storage.getStoredChunks().get(key).getObservedRD();
+                    if(this.storage.getStoredChunks().get(key).getStorers().size() != 0)
+                        information += " -";
+                    for(Integer pid : this.storage.getStoredChunks().get(key).getStorers()) {
+                        information += " " + pid;
+                    }
+                    information += "\n";
                 }
             }
         }
 
         information += "\n For each chunk it stores:\n";
-        if(this.storage.getStoredChunks().size() == 0) information += "  - No chunks backed up\n";
-        
-        for(Map.Entry<String, Integer> key : this.storage.getStoredChunks().keySet()) {
-            Chunk aux = this.storage.getStoredChunks().get(new AbstractMap.SimpleEntry<String, Integer>(key.getKey(), key.getValue()));
-            information += "    - Its id: " + aux.getId() + "\n";
-            information += "    - Its size: " + aux.getSize() / 1000 + "\n";
-            information += "    - Its perceived replication degree: " + aux.getObservedRD() + "\n";
+        int counter = 0;
+
+        for(AbstractMap.SimpleEntry<String, Integer> key : this.storage.getStoredChunks().keySet()) {
+            boolean wasBackupInitiator = false;
+            for(FileManager fm : this.storage.getStoredFiles()) {
+                if(fm.getFileID().equals(key.getKey())) {
+                    wasBackupInitiator = true;
+                }
+            }
+            if(!wasBackupInitiator) {
+                counter++;
+                Chunk aux = this.storage.getStoredChunks().get(key);
+                information += "    - Its id: " + aux.getId() + "\n";
+                information += "    - Its size: " + aux.getSize() / 1000 + "\n";
+                information += "    - Its perceived replication degree: " + aux.getObservedRD() + "\n";
+            }
         }
+        if(this.storage.getStoredChunks().size() == 0 || counter == 0) information += "  - No chunks backed up\n";
         
-        information += " Storage:\n" +
+        information += "\n Storage:\n" +
                     "  - Capacity available: " + this.storage.getSpaceAvailable() + "\n" + 
                     "  - Maximum capacity: " + this.storage.getMaxCapacity() + "\n";
 

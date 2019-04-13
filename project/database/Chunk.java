@@ -116,6 +116,10 @@ public class Chunk implements java.io.Serializable {
         }
     }
 
+    public HashSet<Integer> getStorers() {
+        return storers;
+    }
+
     public int getObservedRD(){
         return observedRD;
     }
