@@ -115,9 +115,14 @@ public class Storage implements java.io.Serializable {
         return "NotFound.txt";
     }
 
-    public void addFileManager(FileManager fm) {
-        if(!storedFiles.contains(fm))
-            this.storedFiles.add(fm);
+    public void addFileManager(FileManager newFM) {
+        boolean found = false;
+        for(FileManager fm : this.storedFiles) {
+            if(fm.getFileID().equals(newFM.getFileID())) {
+                found = true;
+            }
+        }
+        if(!found) this.storedFiles.add(newFM);
     }
 
     public synchronized void addRestoredChunk(AbstractMap.SimpleEntry<String, Integer> key, byte[] content) {
