@@ -37,12 +37,14 @@ $ java project/service/TestApp "localhost RemoteInterface2" RECLAIM 0
 4. Linux:
 ```
 usage: ./linux-run.sh <version> <number_of_peers>)
-
+```
+```
 ./linux-run.sh 1.0 2
 ```
 5. Windows:
 ```
 usage: ./windows-run.bat <version> <number_of_peers>
-
+```
+```
 ./windows-run.bat 1.0 2
 ```
