@@ -57,6 +57,16 @@ public class MCChannel extends Channel implements Runnable{
         socket.close();
     }
 
+    public synchronized void sendJoined() throws IOException {
+        byte[] message = super.createHeader("JOINED").getBytes();
+
+        DatagramPacket sendPacket = new DatagramPacket(message, message.length, this.address, this.portNumber);
+        MulticastSocket socket = new MulticastSocket(this.portNumber);
+        socket.joinGroup(this.address);
+        socket.send(sendPacket);
+        socket.close();
+    }
+
     @Override
     public void run() {
         

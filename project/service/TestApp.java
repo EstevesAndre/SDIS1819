@@ -71,6 +71,9 @@ public class TestApp {
                 case "DELETE":
                     this.RMIStub.deleteOperation(this.operationArgs);
                 break;
+                case "DELETEENH":
+                    this.RMIStub.deleteEnhOperation(this.operationArgs);
+                break;
                 case "RECLAIM":
                     this.RMIStub.reclaimOperation(this.operationArgs);
                 break;

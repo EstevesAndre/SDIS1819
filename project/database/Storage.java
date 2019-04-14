@@ -20,6 +20,7 @@ public class Storage implements java.io.Serializable {
     private ConcurrentHashMap<AbstractMap.SimpleEntry<String, Integer>, InitiatedChunk> initiatedChunks;
     private ConcurrentHashMap<AbstractMap.SimpleEntry<String,Integer>, Chunk> storedChunks;
     private ConcurrentHashMap<AbstractMap.SimpleEntry<String, Integer>, byte[]> restoredChunks;
+    private HashSet<String> deletedFiles;
     private ArrayList<FileManager> storedFiles;
 
     public Storage() {
@@ -29,6 +30,7 @@ public class Storage implements java.io.Serializable {
         initiatedChunks = new ConcurrentHashMap<AbstractMap.SimpleEntry<String, Integer>, InitiatedChunk>();
         storedChunks = new ConcurrentHashMap<AbstractMap.SimpleEntry<String,Integer>, Chunk>();
         restoredChunks = new ConcurrentHashMap<AbstractMap.SimpleEntry<String, Integer>, byte[]>();
+        deletedFiles = new HashSet<String>();
 
         storedFiles = new ArrayList<FileManager>();
     }
@@ -199,8 +201,11 @@ public class Storage implements java.io.Serializable {
 
     public synchronized void initiateChunk(AbstractMap.SimpleEntry<String,Integer> key, int desiredRD) {
         InitiatedChunk initiated = new InitiatedChunk(desiredRD);
-
         this.initiatedChunks.put(key, initiated);
+        
+        if(this.deletedFiles.contains(key.getKey())) {
+            this.deletedFiles.remove(key.getKey());
+        }
     }
 
     public synchronized void removeInitiatedChunk(AbstractMap.SimpleEntry<String,Integer> key) {
@@ -222,5 +227,13 @@ public class Storage implements java.io.Serializable {
         }
 
         return false;
+    }
+
+    public HashSet<String> getDeletedFiles() {
+        return deletedFiles;
+    }
+
+    public void addDeletedFile(String fileId) {
+        deletedFiles.add(fileId);
     }
 }

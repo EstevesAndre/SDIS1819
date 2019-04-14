@@ -114,6 +114,18 @@ public class Peer implements RemoteInterface, Remote {
         return this.executor;
     }
 
+    public void receiveJoined() throws IOException {
+        if(Float.compare(this.version, 1.0F) == 0) {
+            return;
+        }
+
+        HashSet<String> deletedFiles = this.storage.getDeletedFiles();
+
+        for(String fileId : deletedFiles) {
+            this.MCchannel.sendDelete(fileId);
+        }
+    }
+
     public void receiveGetChunk(String[] message) throws IOException {
         // ex: GETCHUNK version senderID fileID chunkID
 
@@ -260,6 +272,7 @@ public class Peer implements RemoteInterface, Remote {
         Chunk chunk = this.storage.getStoredChunk(key);
         if(chunk != null) {
             chunk.addStorer(sender);
+
             ScheduledFuture storeChunk = this.waitingOnStoreds.get(key);
             if(Float.compare(this.version, 1.0F) != 0 && storeChunk != null) { // enhanced version
                 if(chunk.getObservedRD() - 1 >= chunk.getDesiredRD()) {
@@ -278,7 +291,7 @@ public class Peer implements RemoteInterface, Remote {
     }
 
     public void receiveDelete(String[] message) throws IOException {
-        
+
         if(Integer.parseInt(message[2]) == this.peerID)
             return;
 
@@ -396,21 +409,26 @@ public class Peer implements RemoteInterface, Remote {
 
         Peer peer = new Peer(args[0], args[1], args[2], args[3], args[4], args[5]);
         
+        peer.executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(200);
+        peer.executor.execute(peer.MDBchannel);
+        peer.executor.execute(peer.MCchannel);
+        peer.executor.execute(peer.MDRchannel);
+
         try {   
             FileInputStream fis = new FileInputStream("peer" + peer.peerID + "/storage.ser");
             ObjectInputStream input = new ObjectInputStream(fis);
             peer.storage = (Storage) input.readObject();
             input.close();
             fis.close();
+            
+            if(Float.compare(peer.version, 1.0F) != 0) {
+                peer.MCchannel.sendJoined();
+            }
+            
         }
         catch (Exception e) {
             peer.storage = new Storage();
         }
-
-        peer.executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(200);
-        peer.executor.execute(peer.MDBchannel);
-        peer.executor.execute(peer.MCchannel);
-        peer.executor.execute(peer.MDRchannel);
     }
 
     @Override
@@ -454,7 +472,7 @@ public class Peer implements RemoteInterface, Remote {
     
     @Override
     public void backupEnhOperation(ArrayList<String> info) throws Exception {
-        if(Float.compare(this.version, 1.1F) != 0) {
+        if(Float.compare(this.version, 1.0F) == 0) {
             System.out.println("Test App version not compatible with Peer version");
             return;
         }
@@ -508,6 +526,11 @@ public class Peer implements RemoteInterface, Remote {
     
     @Override
     public void deleteOperation(ArrayList<String> info) throws Exception {
+        if(Float.compare(this.version, 1.0F) != 0) {
+            System.out.println("Test App version not compatible with Peer version");
+            return;
+        }
+
         if(info.size() != 1)
         {
             System.out.println("Wrong number of arguments for DELETE operation\n");
@@ -516,12 +539,39 @@ public class Peer implements RemoteInterface, Remote {
          
         String path = info.get(0);
 
+        delete(path);
+    }
+
+    @Override
+    public void deleteEnhOperation(ArrayList<String> info) throws Exception {
+        if(Float.compare(this.version, 1.0F) == 0) {
+            System.out.println("Test App version not compatible with Peer version");
+            return;
+        }
+
+        if(info.size() != 1)
+        {
+            System.out.println("Wrong number of arguments for DELETE operation\n");
+			return;
+        }
+         
+        String path = info.get(0);
+
+        delete(path);
+    }
+
+    public void delete(String path) throws Exception{
         System.out.println("Received the following request: - DELETE " + path);  
 
         String fileID = getFileHashID(path);
         System.out.println("File id: " + fileID);
         
         this.storage.deleteFileSent(fileID);
+        
+        if(Float.compare(this.version, 1.0F) != 0) {
+            this.storage.addDeletedFile(fileID);
+        }
+
         Peer.savesInfoStorage(this, this.storage);
         this.MCchannel.sendDelete(fileID);
     }

@@ -54,6 +54,9 @@ public class ReceiveMessage implements Runnable{
                 case "REMOVED":
                     this.peer.receiveRemoved(received);
                     break;
+                case "JOINED":
+                    this.peer.receiveJoined();
+                    break;
                 default:
                     break;
             }
