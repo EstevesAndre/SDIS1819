@@ -16,7 +16,7 @@ public class MCChannel extends Channel implements Runnable{
         super(MCCAddr, peer);
     }
 
-    public void sendStored(String fileID, int chunkNumber) throws IOException {
+    public synchronized void sendStored(String fileID, int chunkNumber) throws IOException {
         
         byte[] message = super.createHeader("STORED", fileID, chunkNumber).getBytes();
         
@@ -27,7 +27,7 @@ public class MCChannel extends Channel implements Runnable{
         socket.close();
     }
 
-    public void sendDelete(String fileID) throws IOException {
+    public synchronized void sendDelete(String fileID) throws IOException {
         byte[] message = super.createHeader("DELETE", fileID).getBytes();
 
         DatagramPacket sendPacket = new DatagramPacket(message, message.length, this.address, this.portNumber);
@@ -37,7 +37,7 @@ public class MCChannel extends Channel implements Runnable{
         socket.close();
     }
 
-    public void sendGetChunk(String fileID, int chunkNumber) throws IOException {
+    public synchronized void sendGetChunk(String fileID, int chunkNumber) throws IOException {
         byte[] message = super.createHeader("GETCHUNK", fileID, chunkNumber).getBytes();
 
         DatagramPacket sendPacket = new DatagramPacket(message, message.length, this.address, this.portNumber);
@@ -47,7 +47,7 @@ public class MCChannel extends Channel implements Runnable{
         socket.close();
     }
 
-    public void sendRemoved(String fileID, int chunkNumber) throws IOException {
+    public synchronized void sendRemoved(String fileID, int chunkNumber) throws IOException {
         byte[] message = super.createHeader("REMOVED", fileID, chunkNumber).getBytes();
 
         DatagramPacket sendPacket = new DatagramPacket(message, message.length, this.address, this.portNumber);

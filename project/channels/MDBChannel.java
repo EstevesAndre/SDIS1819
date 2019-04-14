@@ -23,7 +23,7 @@ public class MDBChannel extends Channel implements Runnable{
         super(MDBAddr, peer);
     }
 
-    public void sendPutChunk(String fileID, Chunk chunk, int rd) throws IOException {
+    public synchronized void sendPutChunk(String fileID, Chunk chunk, int rd) throws IOException {
         byte[] header = super.createHeader("PUTCHUNK", fileID, chunk.getId(), rd).getBytes();
         byte[] putChunk = new byte[header.length + chunk.getSize()];
         System.arraycopy(header, 0, putChunk, 0, header.length);
@@ -37,7 +37,7 @@ public class MDBChannel extends Channel implements Runnable{
         socket.close();
     }
 
-    public void verifyRDinitiated(String fileID, Chunk chunk, int rd) throws Exception {
+    public synchronized void verifyRDinitiated(String fileID, Chunk chunk, int rd) throws Exception {
         int attempts = 1;
         int waitingTime = 1000;
         AbstractMap.SimpleEntry<String, Integer> putchunk = new AbstractMap.SimpleEntry<String, Integer>(fileID, chunk.getId());

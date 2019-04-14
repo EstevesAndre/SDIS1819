@@ -61,15 +61,15 @@ public class Storage implements java.io.Serializable {
         return this.storedFiles;
     }
 
-    public ConcurrentHashMap<AbstractMap.SimpleEntry<String, Integer>, Chunk> getStoredChunks() {
+    public synchronized ConcurrentHashMap<AbstractMap.SimpleEntry<String, Integer>, Chunk> getStoredChunks() {
         return this.storedChunks;
     }
 
-    public ConcurrentHashMap<AbstractMap.SimpleEntry<String, Integer>, byte[]> getRestoredChunks() {
+    public synchronized ConcurrentHashMap<AbstractMap.SimpleEntry<String, Integer>, byte[]> getRestoredChunks() {
         return this.restoredChunks;
     }
 
-    public Chunk getStoredChunk(AbstractMap.SimpleEntry<String,Integer> key) {
+    public synchronized Chunk getStoredChunk(AbstractMap.SimpleEntry<String,Integer> key) {
         return this.storedChunks.get(key); // Chunk or null
     }
 
@@ -100,6 +100,7 @@ public class Storage implements java.io.Serializable {
         {
             this.incSpaceAvailable(this.storedChunks.get(key).getSize());
             this.storedChunks.get(key).deleteChunk(peerID);
+            this.storedChunks.remove(key);
         }
     }
 
@@ -111,7 +112,7 @@ public class Storage implements java.io.Serializable {
         }
     }
 
-    public String getFileName(String fileID) {
+    public synchronized String getFileName(String fileID) {
         for(FileManager fm : this.storedFiles) {
             if(fm.getFileID().equals(fileID)) {
                 String path = fm.getPath();
@@ -125,7 +126,7 @@ public class Storage implements java.io.Serializable {
         return "NotFound.txt";
     }
 
-    public void addFileManager(FileManager newFM) {
+    public synchronized void addFileManager(FileManager newFM) {
         boolean found = false;
         for(FileManager fm : this.storedFiles) {
             if(fm.getFileID().equals(newFM.getFileID())) {
@@ -179,7 +180,7 @@ public class Storage implements java.io.Serializable {
         }
     }
 
-    public boolean hasInitiatedChunk(String fileID) {
+    public synchronized boolean hasInitiatedChunk(String fileID) {
         for(FileManager fm : this.storedFiles) {
             if(fm.getFileID().equals(fileID)) {
                 return true;
@@ -188,33 +189,33 @@ public class Storage implements java.io.Serializable {
         return false;
     }
 
-    public boolean hasChunkStored(AbstractMap.SimpleEntry<String,Integer> key) {
+    public synchronized boolean hasChunkStored(AbstractMap.SimpleEntry<String,Integer> key) {
         return this.storedChunks.containsKey(key);
     }
 
-    public boolean hasInitiatedChunk(AbstractMap.SimpleEntry<String,Integer> key) {
+    public synchronized boolean hasInitiatedChunk(AbstractMap.SimpleEntry<String,Integer> key) {
         return this.initiatedChunks.containsKey(key);
     }
 
-    public void initiateChunk(AbstractMap.SimpleEntry<String,Integer> key, int desiredRD) {
+    public synchronized void initiateChunk(AbstractMap.SimpleEntry<String,Integer> key, int desiredRD) {
         InitiatedChunk initiated = new InitiatedChunk(desiredRD);
 
         this.initiatedChunks.put(key, initiated);
     }
 
-    public void removeInitiatedChunk(AbstractMap.SimpleEntry<String,Integer> key) {
+    public synchronized void removeInitiatedChunk(AbstractMap.SimpleEntry<String,Integer> key) {
         this.initiatedChunks.remove(key);
     }
 
-    public InitiatedChunk getInitiatedChunk(AbstractMap.SimpleEntry<String,Integer> key) {
+    public synchronized InitiatedChunk getInitiatedChunk(AbstractMap.SimpleEntry<String,Integer> key) {
         return this.initiatedChunks.get(key); // InitiatedChunk or null
     }
 
-    public ConcurrentHashMap<AbstractMap.SimpleEntry<String, Integer>, InitiatedChunk> getInitiatedChunks() {
+    public synchronized ConcurrentHashMap<AbstractMap.SimpleEntry<String, Integer>, InitiatedChunk> getInitiatedChunks() {
         return this.initiatedChunks;
     }
 
-    public boolean verifyRDInitiated(AbstractMap.SimpleEntry<String, Integer> key) {
+    public synchronized boolean verifyRDInitiated(AbstractMap.SimpleEntry<String, Integer> key) {
         InitiatedChunk initiated = this.initiatedChunks.get(key);
         if(initiated != null) {
             return ((initiated.getDesiredRD() <= initiated.getObservedRD())? true : false);

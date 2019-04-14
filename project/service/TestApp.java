@@ -63,6 +63,9 @@ public class TestApp {
                 case "BACKUP":
                     info = this.RMIStub.backupOperation(this.operationArgs);
                 break;
+                case "BACKUPENH":
+                    this.RMIStub.backupEnhOperation(this.operationArgs);
+                break;
                 case "RESTORE":
                     info = this.RMIStub.restoreOperation(this.operationArgs);
                 break;

@@ -56,6 +56,7 @@ public class Peer implements RemoteInterface, Remote {
     private Storage storage;
     
     private ConcurrentHashMap<AbstractMap.SimpleEntry<String, Integer>, ScheduledFuture> waitingOnPutchunks;
+    private ConcurrentHashMap<AbstractMap.SimpleEntry<String, Integer>, ScheduledFuture> waitingOnStoreds;
 
     private ThreadPoolExecutor executor;
     private ScheduledThreadPoolExecutor scheduledExecutor;
@@ -77,6 +78,7 @@ public class Peer implements RemoteInterface, Remote {
         this.scheduledExecutor = new ScheduledThreadPoolExecutor(5);
 
         this.waitingOnPutchunks = new ConcurrentHashMap<AbstractMap.SimpleEntry<String, Integer>, ScheduledFuture>();
+        this.waitingOnStoreds = new ConcurrentHashMap<AbstractMap.SimpleEntry<String, Integer>, ScheduledFuture>();
 
         this.joinRMI();
     }
@@ -230,29 +232,41 @@ public class Peer implements RemoteInterface, Remote {
                 Peer.savesInfoStorage(this, this.storage);
             }
 
-            this.scheduledExecutor.schedule(sendStored, delay, TimeUnit.MILLISECONDS);
+            this.waitingOnStoreds.put(key, this.scheduledExecutor.schedule(sendStored, delay, TimeUnit.MILLISECONDS));
         }
         else
             System.err.println("No space available");
     }
 
-    public void receiveStored(String[] message) {
+    public void receiveStored(String[] message) throws IOException {
         
         int sender = Integer.parseInt(message[2]);
-        
-        // verifies if is not the same peer
-        if(sender == this.peerID)
-            return;
         
         String fileID = message[3];
         int chunkID = Integer.parseInt(message[4]);
 
         AbstractMap.SimpleEntry<String, Integer> key = new AbstractMap.SimpleEntry<String, Integer>(fileID, chunkID);
+
+        // verifies if is not the same peer
+        if(sender == this.peerID) {
+            if(this.waitingOnStoreds.containsKey(key)) {
+                this.waitingOnStoreds.remove(key);
+            }
+            return;
+        }
         
         System.out.println("Received stored " + fileID + " " + chunkID);
 
-        if(this.storage.containsChunk(key)) {
-            this.storage.getStoredChunks().get(key).addStorer(sender);
+        Chunk chunk = this.storage.getStoredChunk(key);
+        if(chunk != null) {
+            chunk.addStorer(sender);
+            ScheduledFuture storeChunk = this.waitingOnStoreds.get(key);
+            if(Float.compare(this.version, 1.0F) != 0 && storeChunk != null) { // enhanced version
+                if(chunk.getObservedRD() - 1 >= chunk.getDesiredRD()) {
+                    storeChunk.cancel(true);
+                    this.storage.deleteChunk(key, this.peerID);                    
+                }
+            }
         }
 
         InitiatedChunk initiated = this.storage.getInitiatedChunk(key);
@@ -401,9 +415,12 @@ public class Peer implements RemoteInterface, Remote {
 
     @Override
     public String backupOperation(ArrayList<String> info) throws Exception {
-    
-        if(info.size() != 2)
-        {
+        if(Float.compare(this.version, 1.0F) != 0) {
+            System.out.println("Test App version not compatible with Peer version\n");
+            return "Test App version not compatible with Peer version";
+        }
+
+        if(info.size() != 2) {
             System.out.println("Wrong number of arguments for BACKUP operation\n");
             return " - Wrong number of arguments for BACKUP operation";
         }
@@ -411,6 +428,11 @@ public class Peer implements RemoteInterface, Remote {
         String path = info.get(0);
         int rd = Integer.parseInt(info.get(1));
         System.out.println("Received the following request: - BACKUP " + path + " rd - " + rd);
+
+        return backup(path, rd);
+    }
+
+    public String backup(String path, int rd) throws Exception  {
         String fileID = getFileHashID(path);
         
         ArrayList<Chunk> chunks = FileManager.splitFile(fileID, path, rd);
@@ -430,6 +452,25 @@ public class Peer implements RemoteInterface, Remote {
         return null;
     }
     
+    @Override
+    public void backupEnhOperation(ArrayList<String> info) throws Exception {
+        if(Float.compare(this.version, 1.1F) != 0) {
+            System.out.println("Test App version not compatible with Peer version");
+            return;
+        }
+
+        if(info.size() != 2) {
+            System.out.println("Wrong number of arguments for BACKUP operation\n");
+            return;
+        }
+        
+        String path = info.get(0);
+        int rd = Integer.parseInt(info.get(1));
+        System.out.println("Received the following request: - BACKUPENH " + path + " rd - " + rd);
+
+        backup(path, rd);
+    }
+
     @Override
     public String restoreOperation(ArrayList<String> info) throws Exception {
         

@@ -17,7 +17,7 @@ public class MDRChannel extends Channel implements Runnable{
         super(MDRAddr, peer);
     }
 
-    public void sendChunk(String fileID, Chunk chunk) throws IOException {
+    public synchronized void sendChunk(String fileID, Chunk chunk) throws IOException {
         byte[] header = super.createHeader("CHUNK", fileID, chunk.getId()).getBytes();
 
         byte[] putChunk = new byte[header.length + chunk.getSize()];
