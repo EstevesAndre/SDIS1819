@@ -130,7 +130,6 @@ public class Peer implements RemoteInterface, Remote {
             File chunkFile = new File("peer" + this.peerID + "/backup/" + fileID + "/" + fileName);
 
             if(!chunkFile.exists()) {
-                System.out.println("The desired chunk does not exist here anymore");
                 return;
             }
             
@@ -203,10 +202,12 @@ public class Peer implements RemoteInterface, Remote {
         
         AbstractMap.SimpleEntry<String, Integer> key = new AbstractMap.SimpleEntry<String, Integer>(fileID, chunkID);
         if(this.storage.hasInitiatedChunk(fileID)) {return;} // a peer shouldn't store its own files
+        
         if(this.waitingOnPutchunks.containsKey(key)) {
             this.waitingOnPutchunks.get(key).cancel(true);
             this.waitingOnPutchunks.remove(key);
             this.storage.removeInitiatedChunk(key);
+            Peer.savesInfoStorage(this, this.storage);
         }
 
         if(this.storage.getSpaceAvailable() >= chunkByte.length)
@@ -214,7 +215,7 @@ public class Peer implements RemoteInterface, Remote {
             int rd = Integer.parseInt(received[5]);
             
             Chunk chunk = new Chunk(fileID, chunkID, chunkByte, chunkByte.length, rd);
-            if(this.storage.storeChunk(key, chunk, this.peerID, true)) {
+            if(this.storage.storeChunk(key, chunk, this.peerID)) {
                 this.storage.decSpaceAvailable(chunk.getSize());
                 chunk.storeChunk(peerID);
                 Peer.savesInfoStorage(this, this.storage);
@@ -410,7 +411,7 @@ public class Peer implements RemoteInterface, Remote {
     
             AbstractMap.SimpleEntry<String, Integer> key = new AbstractMap.SimpleEntry<String, Integer>(fileID, chunks.get(i).getId());
             this.storage.initiateChunk(key, rd);
-            this.storage.storeChunk(key, chunks.get(i), this.peerID, false);
+            
             Peer.savesInfoStorage(this, this.storage);
 
             this.executor.execute(new SendPutChunk(this.MDBchannel, fileID, chunks.get(i), rd));
@@ -525,14 +526,14 @@ public class Peer implements RemoteInterface, Remote {
             information += "  - The desired replication degree: " + this.storage.getStoredFiles().get(i).getDRD() + "\n";
             information += "  - For each chunk of the file:\n";
 
-            for(AbstractMap.SimpleEntry<String, Integer> key : this.storage.getStoredChunks().keySet()) {
+            for(AbstractMap.SimpleEntry<String, Integer> key : this.storage.getInitiatedChunks().keySet()) {
                 if(key.getKey().equals(this.storage.getStoredFiles().get(i).getFileID())) {
                     information += "    - Its id: " + key.getValue() + "\n";
                     information += "      Its perceived replication degree: " + 
-                            this.storage.getStoredChunks().get(key).getObservedRD();
-                    if(this.storage.getStoredChunks().get(key).getStorers().size() != 0)
+                            this.storage.getInitiatedChunk(key).getObservedRD();
+                    if(this.storage.getInitiatedChunk(key).getStorers().size() != 0)
                         information += " -";
-                    for(Integer pid : this.storage.getStoredChunks().get(key).getStorers()) {
+                    for(Integer pid : this.storage.getInitiatedChunk(key).getStorers()) {
                         information += " " + pid;
                     }
                     information += "\n";
@@ -554,8 +555,8 @@ public class Peer implements RemoteInterface, Remote {
                 counter++;
                 Chunk aux = this.storage.getStoredChunks().get(key);
                 information += "    - Its id: " + aux.getId() + "\n";
-                information += "    - Its size: " + aux.getSize() / 1000 + "\n";
-                information += "    - Its perceived replication degree: " + aux.getObservedRD() + "\n";
+                information += "      Its size: " + aux.getSize() / 1000 + "\n";
+                information += "      Its perceived replication degree: " + aux.getObservedRD() + "\n";
             }
         }
         if(this.storage.getStoredChunks().size() == 0 || counter == 0) information += "  - No chunks backed up\n";

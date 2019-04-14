@@ -3,6 +3,9 @@ package project.database;
 import java.util.HashSet;
 
 public class InitiatedChunk implements java.io.Serializable{
+    
+    private static final long serialVersionUID = 1L;
+
     private int observedRD;
     private int desiredRD;
     private HashSet<Integer> storers; // id's of the peers that backed up the chunk
@@ -26,5 +29,9 @@ public class InitiatedChunk implements java.io.Serializable{
 
     public int getDesiredRD() {
         return desiredRD;
+    }
+
+    public HashSet<Integer> getStorers() {
+        return storers;
     }
 }

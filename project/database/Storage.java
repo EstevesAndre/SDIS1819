@@ -73,17 +73,19 @@ public class Storage implements java.io.Serializable {
         return this.storedChunks.get(key); // Chunk or null
     }
 
-    public synchronized boolean storeChunk(AbstractMap.SimpleEntry<String, Integer> key, Chunk chunk, int peerID, boolean onStore) throws IOException {
+    public synchronized boolean storeChunk(AbstractMap.SimpleEntry<String, Integer> key, Chunk chunk, int peerID) throws IOException {
         if(this.storedChunks.containsKey(key))
         {
             if(this.storedChunks.get(key).wasDeleted()) {
                 this.storedChunks.get(key).storeChunk(peerID);
+                this.storedChunks.get(key).addStorer(peerID);
+                return true;
             }
             else return false;
         }
         
         this.storedChunks.put(key, chunk);
-        if(onStore) this.storedChunks.get(key).addStorer(peerID);
+        this.storedChunks.get(key).addStorer(peerID);
         return true;
     }
 
@@ -202,6 +204,10 @@ public class Storage implements java.io.Serializable {
 
     public InitiatedChunk getInitiatedChunk(AbstractMap.SimpleEntry<String,Integer> key) {
         return this.initiatedChunks.get(key); // InitiatedChunk or null
+    }
+
+    public ConcurrentHashMap<AbstractMap.SimpleEntry<String, Integer>, InitiatedChunk> getInitiatedChunks() {
+        return this.initiatedChunks;
     }
 
     public boolean verifyRDInitiated(AbstractMap.SimpleEntry<String, Integer> key) {
