@@ -52,3 +52,7 @@ usage: ./windows-run.bat <version> <number_of_peers>
 ### Copied code
 
 [byteToHex](https://stackoverflow.com/questions/332079/in-java-how-do-i-convert-a-byte-array-to-a-string-of-hex-digits-while-keeping-l/2197650?fbclid=IwAR0ju0ViLEOBx5ccvgELlEpgixrlOVbwpLvrCeHBDuy72xW_AGQS0y2tc9s#2197650)
+
+[SplitFile in pieces](https://stackoverflow.com/questions/10864317/how-to-break-a-file-into-pieces-using-java)
+
+[java.io.Serializable](https://www.tutorialspoint.com/java/java_serialization.htm)
