@@ -33,6 +33,7 @@ import project.rmi.RemoteInterface;
 import project.threads.SendGetChunk;
 import project.threads.SendPutChunk;
 import project.threads.SendRemoved;
+import project.threads.SendStored;
 import project.threads.SendChunk;
 
 import java.rmi.registry.Registry;
@@ -60,7 +61,7 @@ public class Peer implements RemoteInterface, Remote {
     private ScheduledThreadPoolExecutor scheduledExecutor;
 
     public Peer(String version, String serverID, String accessPoint, String MCAddr, String MDBAddr, String MDRAddr) throws Exception {
-        
+
         System.setProperty("java.net.preferIPv4Stack", "true");
 
         this.peerID = Short.parseShort(serverID);
@@ -201,13 +202,21 @@ public class Peer implements RemoteInterface, Remote {
         System.out.println("Received putChunk " + chunkID + " " + chunkByte.length);
         
         AbstractMap.SimpleEntry<String, Integer> key = new AbstractMap.SimpleEntry<String, Integer>(fileID, chunkID);
-        if(this.storage.hasInitiatedChunk(fileID)) {return;} // a peer shouldn't store its own files
         
         if(this.waitingOnPutchunks.containsKey(key)) {
             this.waitingOnPutchunks.get(key).cancel(true);
             this.waitingOnPutchunks.remove(key);
             this.storage.removeInitiatedChunk(key);
             Peer.savesInfoStorage(this, this.storage);
+        }
+
+        if(this.storage.hasInitiatedChunk(fileID)) {return;} // a peer shouldn't store its own files
+
+        int delay = ThreadLocalRandom.current().nextInt(400);
+        SendStored sendStored = new SendStored(this.MCchannel, fileID, chunkID);
+        if(this.storage.hasChunkStored(key)) {
+            this.scheduledExecutor.schedule(sendStored, delay, TimeUnit.MILLISECONDS);
+            return;
         }
 
         if(this.storage.getSpaceAvailable() >= chunkByte.length)
@@ -221,7 +230,7 @@ public class Peer implements RemoteInterface, Remote {
                 Peer.savesInfoStorage(this, this.storage);
             }
 
-            this.MCchannel.sendStored(fileID, chunkID);
+            this.scheduledExecutor.schedule(sendStored, delay, TimeUnit.MILLISECONDS);
         }
         else
             System.err.println("No space available");

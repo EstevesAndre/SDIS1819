@@ -28,6 +28,7 @@ public class MDRChannel extends Channel implements Runnable{
         MulticastSocket socket = new MulticastSocket(this.portNumber);
         socket.joinGroup(this.address);
         socket.send(sendPacket);
+        socket.close();
     }
     
     @Override

@@ -188,6 +188,10 @@ public class Storage implements java.io.Serializable {
         return false;
     }
 
+    public boolean hasChunkStored(AbstractMap.SimpleEntry<String,Integer> key) {
+        return this.storedChunks.containsKey(key);
+    }
+
     public boolean hasInitiatedChunk(AbstractMap.SimpleEntry<String,Integer> key) {
         return this.initiatedChunks.containsKey(key);
     }
