@@ -13,7 +13,6 @@ public class TestApp {
     
     private RemoteInterface RMIStub;
 
-
     public TestApp(String args[]) throws Exception {
         
         System.setProperty("java.net.preferIPv4Stack", "true");
