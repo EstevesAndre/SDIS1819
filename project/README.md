@@ -48,3 +48,7 @@ usage: ./windows-run.bat <version> <number_of_peers>
 ```
 ./windows-run.bat 1.0 2
 ```
+
+### Copied code
+
+[byteToHex](https://stackoverflow.com/questions/332079/in-java-how-do-i-convert-a-byte-array-to-a-string-of-hex-digits-while-keeping-l/2197650?fbclid=IwAR0ju0ViLEOBx5ccvgELlEpgixrlOVbwpLvrCeHBDuy72xW_AGQS0y2tc9s#2197650)
